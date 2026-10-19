@@ -1,0 +1,17 @@
+fastapi==0.146.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+python-dotenv==1.2.4
+python-multipart==0.0.32
+mysql-connector-python==26.7.0
+spacy==3.8.16
+scikit-learn==1.9.1
+pypdf==6.21.1
+python-docx==1.2.0
+
+# testy
+pytest==9.1.1
+httpx==0.28.1
+
+# jazykový model sa inštaluje zvlášť:
+#   python -m spacy download en_core_web_sm

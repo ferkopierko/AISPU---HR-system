@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS cv_analyses (
     application_id   INT UNSIGNED  NOT NULL,
     raw_text         LONGTEXT      NULL,
     skills_json      JSON          NULL,           -- napr. ["python", "sql", "docker"]
+    education_json   JSON          NULL,           -- {"degrees": [...], "institutions": [...]} (fáza 3)
     experience_years DECIMAL(4,1)  NULL,
 
     PRIMARY KEY (id),
@@ -36,6 +37,8 @@ CREATE TABLE IF NOT EXISTS match_scores (
     id                  INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     application_id      INT UNSIGNED  NOT NULL,
     score_percentage    DECIMAL(5,2)  NOT NULL,
+    text_similarity     DECIMAL(5,2)  NULL,          -- kosínusová podobnosť textov 0-100 (fáza 3)
+    skill_coverage      DECIMAL(5,2)  NULL,          -- podiel splnených zručností 0-100 (fáza 3)
     missing_skills_json JSON          NULL,
     matched_skills_json JSON          NULL,
     analyzed_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

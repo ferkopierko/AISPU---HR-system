@@ -1,0 +1,120 @@
+"""Slovník rozpoznávaných zručností a vzdelania.
+
+Kľúč = kanonický názov (ten sa vracia v API), hodnota = varianty zápisu.
+Kanonický názov sa hľadá tiež. Porovnáva sa bez ohľadu na veľkosť písmen –
+okrem názvov v CASE_SENSITIVE.
+"""
+
+SKILLS: dict[str, list[str]] = {
+    # programovacie jazyky
+    "python": ["python3"],
+    "java": [],
+    "javascript": ["js", "ecmascript"],
+    "typescript": [],
+    "c++": ["cpp"],
+    "c#": ["csharp", "c sharp"],
+    "c": ["c language", "ansi c", "embedded c"],
+    "go": ["golang", "go lang"],
+    "rust": [],
+    "php": [],
+    "ruby": [],
+    "kotlin": [],
+    "swift": [],
+    "scala": [],
+    "r": ["r language", "rstudio"],
+    "matlab": [],
+    "bash": ["shell scripting"],
+    "powershell": [],
+    # web / frameworky
+    "html": ["html5"],
+    "css": ["css3"],
+    "sass": ["scss"],
+    "react": ["react.js", "reactjs"],
+    "angular": ["angularjs"],
+    "vue": ["vue.js", "vuejs"],
+    "next.js": ["nextjs"],
+    "node.js": ["nodejs"],
+    "express": ["express.js", "expressjs"],
+    "django": [],
+    "flask": [],
+    "fastapi": [],
+    "spring": ["spring boot"],
+    ".net": ["dotnet", "asp.net", "asp.net core", ".net core"],
+    "laravel": [],
+    "graphql": [],
+    "rest api": ["restful", "restful api", "rest apis"],
+    # dáta / ML
+    "sql": [],
+    "mysql": [],
+    "postgresql": ["postgres"],
+    "sql server": ["mssql", "ms sql", "t-sql", "tsql", "azure sql"],
+    "oracle": [],
+    "mongodb": ["mongo"],
+    "redis": [],
+    "elasticsearch": [],
+    "pandas": [],
+    "numpy": [],
+    "scikit-learn": ["sklearn", "scikit learn"],
+    "tensorflow": [],
+    "pytorch": ["torch"],
+    "machine learning": ["ml"],
+    "deep learning": [],
+    "nlp": ["natural language processing"],
+    "spacy": [],
+    "data analysis": ["data analytics"],
+    "power bi": ["powerbi"],
+    "tableau": [],
+    "excel": ["ms excel", "microsoft excel"],
+    # DevOps / cloud
+    "docker": [],
+    "kubernetes": ["k8s"],
+    "azure": ["microsoft azure"],
+    "aws": ["amazon web services"],
+    "gcp": ["google cloud", "google cloud platform"],
+    "linux": [],
+    "git": [],
+    "github": [],
+    "gitlab": [],
+    "ci/cd": ["ci cd", "continuous integration"],
+    "jenkins": [],
+    "terraform": [],
+    "ansible": [],
+    # ostatné
+    "agile": [],
+    "scrum": [],
+    "jira": [],
+    "unit testing": ["pytest", "jest", "junit"],
+    "microservices": ["microservice"],
+    "oop": ["object-oriented programming", "object oriented programming"],
+    "english": ["angličtina"],
+    "german": ["nemčina"],
+}
+
+# Názvy, ktoré sú zároveň bežné slová („react quickly“, „excel at“, „C level“).
+# Hľadajú sa iba v presnom tvare (veľkosť písmen) – varianty v SKILLS platia ďalej.
+CASE_SENSITIVE: dict[str, list[str]] = {
+    "c": ["C"],
+    "r": ["R"],
+    "go": ["Go"],
+    "react": ["React", "REACT"],
+    "express": ["Express"],
+    "excel": ["Excel", "EXCEL"],
+    "swift": ["Swift"],
+    "spring": ["Spring"],
+    "node.js": ["Node", "NODE"],
+    "rust": ["Rust"],
+    "scala": ["Scala"],
+    "ruby": ["Ruby"],
+    "oracle": ["Oracle", "ORACLE"],
+    "agile": ["Agile", "AGILE"],
+    "rest api": ["REST"],
+    "typescript": ["TS"],
+}
+
+# úroveň vzdelania -> výrazy (aj slovenské tituly)
+DEGREES: dict[str, list[str]] = {
+    "phd": ["phd", "ph.d.", "ph.d", "doctorate", "doctoral", "phdr.", "doktorandské"],
+    "master": ["master's", "master of", "master degree", "masters degree", "msc", "m.sc.", "mba", "ing.", "mgr.", "inžinierske", "magisterské"],
+    "bachelor": ["bachelor", "bachelor's", "bachelors", "bsc", "b.sc.", "bc.", "bakalárske"],
+    "high school": ["high school", "secondary school", "gymnázium", "stredná škola", "maturita"],
+}

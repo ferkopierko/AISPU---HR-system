@@ -102,7 +102,7 @@ users 1 ──── * applications * ──── 1 jobs
 | id | INT IDENTITY | PK |
 | email | NVARCHAR(255) | UNIQUE, NOT NULL |
 | password_hash | NVARCHAR(255) | NOT NULL – hash (napr. bcrypt), nikdy heslo |
-| role | NVARCHAR(20) | `candidate` (default) / `hr` / `admin` |
+| role | NVARCHAR(20) | `user` (default) / `admin` – *zmenené vo fáze 2* |
 | created_at | DATETIME2 | default `SYSUTCDATETIME()` (UTC) |
 
 **jobs**
@@ -123,7 +123,7 @@ users 1 ──── * applications * ──── 1 jobs
 | id | INT IDENTITY | PK |
 | user_id | INT | FK → users.id, ON DELETE CASCADE |
 | job_id | INT | FK → jobs.id, ON DELETE CASCADE, index |
-| status | NVARCHAR(20) | `submitted` (default) / `reviewing` / `accepted` / `rejected` |
+| status | NVARCHAR(20) | `submitted` (default) / `reviewing` / `interview` / `accepted` / `rejected` – *`interview` pridaný vo fáze 2* |
 | created_at | DATETIME2 | default `SYSUTCDATETIME()` |
 
 Dvojica `(user_id, job_id)` je UNIQUE – uchádzač sa na pozíciu prihlási len raz.
@@ -165,6 +165,7 @@ kódovanie `utf8mb4` (slovenská diakritika v texte CV).
 | application_id | INT UNSIGNED | UNIQUE – jedna analýza na prihlášku |
 | raw_text | LONGTEXT | extrahovaný text CV |
 | skills_json | JSON | napr. `["python","sql"]` |
+| education_json | JSON | `{"degrees": [...], "institutions": [...]}` – *pridané vo fáze 3* |
 | experience_years | DECIMAL(4,1) | CHECK ≥ 0 |
 
 **match_scores**
@@ -174,6 +175,8 @@ kódovanie `utf8mb4` (slovenská diakritika v texte CV).
 | id | INT UNSIGNED AUTO_INCREMENT | PK |
 | application_id | INT UNSIGNED | index (môže byť viac prepočtov) |
 | score_percentage | DECIMAL(5,2) | CHECK 0–100 |
+| text_similarity | DECIMAL(5,2) NULL | kosínusová podobnosť textov 0–100 – *pridané vo fáze 3* |
+| skill_coverage | DECIMAL(5,2) NULL | podiel splnených zručností 0–100 – *pridané vo fáze 3* |
 | missing_skills_json | JSON | zručnosti, ktoré chýbajú |
 | matched_skills_json | JSON | zručnosti, ktoré sedia |
 | analyzed_at | DATETIME | default `CURRENT_TIMESTAMP` |

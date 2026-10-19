@@ -19,7 +19,17 @@ a konzistenciu stráži aplikácia.
 AISPU---HR-system/
 ├── README.md                    – tento súbor (prehľad + stav projektu)
 ├── docs/
-│   └── faza-1-databazy.md       – detailná dokumentácia fázy 1
+│   ├── faza-1-databazy.md       – fáza 1: databázy
+│   ├── faza-2-backend-1.md      – fáza 2: Backend 1
+│   └── faza-3-backend-2.md      – fáza 3: Backend 2 (ML/NLP)
+├── backend-1/                   – Node.js/Express API nad Azure SQL
+│   ├── package.json
+│   ├── scripts/                 – create-admin.js
+│   └── src/                     – server, app, config, db, middleware, routes
+├── backend-2/                   – Python/FastAPI analýza CV nad MySQL
+│   ├── requirements.txt
+│   ├── app/                     – API, MySQL mapper, NLP modul
+│   └── tests/                   – pytest
 ├── database/
 │   ├── azure-sql/
 │   │   ├── schema.sql           – T-SQL schéma pre Azure SQL (Backend 1)
@@ -43,6 +53,15 @@ docker exec -it hr-mysql mysql -u hr_app -p hr_analysis
 
 # 3. Schéma v Azure SQL (Backend 1)
 powershell -File database\azure-sql\deploy.ps1
+
+# 4. Backend 1
+cd backend-1; npm install; npm run dev   # http://localhost:3001/health
+
+# 5. Backend 2
+cd backend-2
+python -m venv .venv; .venv\Scripts\activate
+pip install -r requirements.txt; python -m spacy download en_core_web_sm
+uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 ```
 
 ## Stav projektu
@@ -50,3 +69,5 @@ powershell -File database\azure-sql\deploy.ps1
 | Fáza | Popis | Stav | Dokumentácia |
 |------|-------|------|--------------|
 | 1 | Databázy (Azure SQL + MySQL) | ✅ hotová | [docs/faza-1-databazy.md](docs/faza-1-databazy.md) |
+| 2 | Backend 1 (Node.js + Azure SQL) | API hotové – čaká na test s reálnou DB | [docs/faza-2-backend-1.md](docs/faza-2-backend-1.md) |
+| 3 | Backend 2 (FastAPI + NLP + MySQL) | ✅ hotová | [docs/faza-3-backend-2.md](docs/faza-3-backend-2.md) |
