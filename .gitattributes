@@ -1,0 +1,2 @@
+# init.sh beží v Linuxovom kontajneri – musí mať konce riadkov LF aj po klonovaní na Windows
+*.sh text eol=lf
