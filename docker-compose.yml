@@ -1,4 +1,46 @@
+# Celý HR systém v Dockeri:  docker compose up -d --build   ->  http://localhost:5173
+#
+#   mssql       – databáza Backendu 1 (SQL Server = lokálna náhrada Azure SQL)
+#   mysql       – databáza Backendu 2
+#   backend-1   – Node.js / Express (používatelia, pozície, prihlášky)
+#   backend-2   – Python / FastAPI (analýza CV, match score)
+#   frontend    – React, servíruje nginx a presmeruje /api na backendy
+#   mssql-init  – jednorazovo nasadí schému a testovacie dáta, potom skončí
+
 services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64          # na Macu s Apple čipom beží cez Rosettu
+    container_name: hr-mssql
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  mssql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    depends_on:
+      mssql:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      DB_NAME: hr_main
+    volumes:
+      - ./database:/scripts:ro
+    entrypoint: ["/bin/bash", "/scripts/mssql/init.sh"]
+    restart: "no"
+
   mysql:
     image: mysql:8.0
     container_name: hr-mysql
@@ -19,5 +61,54 @@ services:
       timeout: 5s
       retries: 5
 
+  backend-1:
+    build: ./backend-1
+    container_name: hr-backend-1
+    restart: unless-stopped
+    depends_on:
+      mssql-init:
+        condition: service_completed_successfully
+    environment:
+      AZURE_SQL_HOST: mssql
+      AZURE_SQL_PORT: 1433
+      AZURE_SQL_DATABASE: hr_main
+      AZURE_SQL_USER: sa
+      AZURE_SQL_PASSWORD: ${MSSQL_SA_PASSWORD}
+      AZURE_SQL_TRUST_CERT: "true"
+      SESSION_SECRET: ${SESSION_SECRET}
+      CORS_ORIGIN: http://localhost:5173
+      BACKEND1_PORT: 3001
+    ports:
+      - "3001:3001"
+
+  backend-2:
+    build: ./backend-2
+    container_name: hr-backend-2
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: hr_analysis
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      CORS_ORIGIN: http://localhost:5173
+      MAX_UPLOAD_MB: 5
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    container_name: hr-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend-1
+      - backend-2
+    ports:
+      - "5173:80"
+
 volumes:
+  mssql_data:
   mysql_data:
