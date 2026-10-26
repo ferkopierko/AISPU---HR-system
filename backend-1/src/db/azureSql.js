@@ -15,8 +15,10 @@ const poolConfig = {
   user: azureSql.user,
   password: azureSql.password,
   options: {
-    encrypt: true,                 // Azure SQL vyžaduje TLS
-    trustServerCertificate: false, // overiť certifikát *.database.windows.net
+    encrypt: true, // Azure SQL vyžaduje TLS
+    // Azure: false = overiť certifikát *.database.windows.net;
+    // lokálny SQL Server v Dockeri: true (self-signed certifikát)
+    trustServerCertificate: azureSql.trustServerCertificate,
   },
   pool: {
     max: 10,

@@ -34,5 +34,8 @@ module.exports = Object.freeze({
     database: process.env.AZURE_SQL_DATABASE,
     user: process.env.AZURE_SQL_USER,
     password: process.env.AZURE_SQL_PASSWORD,
+    // Lokálny SQL Server v Dockeri má self-signed certifikát → AZURE_SQL_TRUST_CERT=true.
+    // Pre Azure SQL nechať nenastavené (certifikát sa overuje).
+    trustServerCertificate: process.env.AZURE_SQL_TRUST_CERT === 'true',
   }),
 });
