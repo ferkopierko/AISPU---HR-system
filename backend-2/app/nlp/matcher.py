@@ -32,12 +32,21 @@ def text_similarity(job_tokens: list[str], cv_tokens: list[str]) -> float:
     return float(cosine_similarity(matrix[0], matrix[1])[0, 0])
 
 
-def skill_match(required: list[str], found: list[str]) -> tuple[list[str], list[str], float | None]:
-    """(nájdené, chýbajúce, pokrytie 0..1); pokrytie None, ak pozícia nemá rozpoznané zručnosti."""
+def skill_match(
+    required: list[str], found: list[str], weights: dict[str, float] | None = None
+) -> tuple[list[str], list[str], float | None]:
+    """(nájdené, chýbajúce, pokrytie 0..1); pokrytie None, ak pozícia nemá rozpoznané zručnosti.
+
+    S váhami je pokrytie = súčet váh nájdených / súčet všetkých váh
+    (Java 60 + SQL 40, CV má iba Javu -> 0.6). Bez váh má každá zručnosť rovnakú váhu.
+    """
     found_set = set(found)
     matched = [s for s in required if s in found_set]
     missing = [s for s in required if s not in found_set]
-    coverage = len(matched) / len(required) if required else None
+    if not required:
+        return matched, missing, None
+    weight = (lambda s: weights[s]) if weights else (lambda s: 1.0)
+    coverage = sum(weight(s) for s in matched) / sum(weight(s) for s in required)
     return matched, missing, coverage
 
 

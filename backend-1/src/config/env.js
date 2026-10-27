@@ -28,6 +28,9 @@ module.exports = Object.freeze({
   port: Number(process.env.BACKEND1_PORT) || 3001,
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   sessionSecret: process.env.SESSION_SECRET,
+  // Spoločný kľúč s Backendom 2 pre /api/internal/* (odovzdanie CV).
+  // Ak nie je nastavený, interné endpointy vracajú 503.
+  internalApiKey: process.env.INTERNAL_API_KEY || null,
   azureSql: Object.freeze({
     server: process.env.AZURE_SQL_HOST,
     port: Number(process.env.AZURE_SQL_PORT) || 1433,

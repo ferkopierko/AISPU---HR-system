@@ -29,6 +29,8 @@ class Settings:
     port: int
     cors_origins: list[str]
     max_upload_mb: int
+    backend1_url: str
+    internal_api_key: str | None
 
 
 settings = Settings(
@@ -41,4 +43,8 @@ settings = Settings(
     # viac adries sa oddeľuje čiarkou
     cors_origins=[o.strip() for o in (os.getenv("CORS_ORIGIN") or "http://localhost:5173").split(",") if o.strip()],
     max_upload_mb=int(os.getenv("MAX_UPLOAD_MB") or 5),
+    # Backend 1 – sem sa po analýze pošle CV a kontakt (v Dockeri http://backend-1:3001).
+    # Bez INTERNAL_API_KEY sa CV neposiela (iba analýza, napr. pri lokálnom vývoji).
+    backend1_url=(os.getenv("BACKEND1_URL") or "http://localhost:3001").rstrip("/"),
+    internal_api_key=os.getenv("INTERNAL_API_KEY") or None,
 )

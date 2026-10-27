@@ -29,7 +29,7 @@ export default function JobDetail() {
     setError('');
     setStep('sending');
     try {
-      const application = await applications.create(job.id);
+      const application = await applications.create(job.id, consent);
       // Ak pozícia nemá vyplnené požiadavky, porovnáva sa aspoň s popisom.
       const requirements = job.requirements || job.description || job.title;
       setAnalysis(await ml.analyze(application.id, file, requirements));

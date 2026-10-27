@@ -49,7 +49,8 @@ export const jobs = {
 };
 
 export const applications = {
-  create: (jobId) => request('/api/applications', { method: 'POST', body: { jobId } }).then((d) => d.application),
+  // consent = súhlas GDPR z formulára, Backend 1 bez neho prihlášku odmietne
+  create: (jobId, consent) => request('/api/applications', { method: 'POST', body: { jobId, consent } }).then((d) => d.application),
 };
 
 export const admin = {

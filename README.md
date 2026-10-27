@@ -167,8 +167,12 @@ cd frontend; npm install; npm run dev      # http://localhost:5173
 
 ### Čo ešte chýba v aplikácii
 
-- **Moje prihlášky** pre uchádzača – po odoslaní nevidí stav prihlášky (chýba `GET /api/applications/mine` + obrazovka).
-- **Správa pozícií pre HR** – pozície sa dajú pridať len cez SQL (chýba `POST/PUT /api/admin/jobs` + obrazovka).
-- **Váhy zručností** – Backend 2 berie `requirements` len ako pole reťazcov, všetky zručnosti majú rovnakú váhu.
-- **Uloženie GDPR súhlasu** – checkbox je vo formulári, ale neukladá sa (napr. stĺpec `applications.consent_at`).
+- **Moje prihlášky** pre uchádzača – backend hotový (`GET /api/applications/mine`), chýba obrazovka.
+- **Správa pozícií pre HR** – backend hotový (`GET/POST/PUT /api/admin/jobs`), chýba obrazovka.
+- ~~Váhy zručností~~ – ✅ Backend 2 počíta pokrytie podľa `[{"skill","weight"}]`.
+- ~~Uloženie GDPR súhlasu~~ – ✅ `applications.consent_at`, prihláška bez súhlasu sa odmietne.
+- **Detail prihlášky pre HR** – backend hotový (CV na stiahnutie, meno a telefón z CV,
+  poznámky HR), chýba zobrazenie vo frontende.
+- **Filter „Všetky pozície“** v HR prehľade ponúka iba pozície s prihláškou – frontend má
+  použiť `GET /api/admin/jobs` (backend netreba meniť).
 - *(voliteľné)* História zmien stavu prihlášky.

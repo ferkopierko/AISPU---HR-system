@@ -8,10 +8,10 @@ spacy==3.8.16
 scikit-learn==1.9.1
 pypdf==6.21.1
 python-docx==1.2.0
+httpx==0.28.1  # volania Backendu 1
 
 # testy
 pytest==9.1.1
-httpx==0.28.1
 
 # jazykový model sa inštaluje zvlášť:
 #   python -m spacy download en_core_web_sm
