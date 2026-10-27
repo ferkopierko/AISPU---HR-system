@@ -36,11 +36,12 @@ CREATE TABLE IF NOT EXISTS cv_analyses (
 CREATE TABLE IF NOT EXISTS match_scores (
     id                  INT UNSIGNED  NOT NULL AUTO_INCREMENT,
     application_id      INT UNSIGNED  NOT NULL,
-    score_percentage    DECIMAL(5,2)  NOT NULL,
+    score_percentage    DECIMAL(5,2)  NULL,
     text_similarity     DECIMAL(5,2)  NULL,          -- kosínusová podobnosť textov 0-100 (fáza 3)
     skill_coverage      DECIMAL(5,2)  NULL,          -- podiel splnených zručností 0-100 (fáza 3)
     missing_skills_json JSON          NULL,
     matched_skills_json JSON          NULL,
+    analysis_json       JSON          NULL,          -- immutable result, evidence, versions, requirements snapshot
     analyzed_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),

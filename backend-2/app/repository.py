@@ -1,6 +1,8 @@
 """Mapper medzi tabuľkami cv_analyses / match_scores a objektmi aplikácie."""
 
 import json
+from dataclasses import asdict
+from contextlib import nullcontext
 from datetime import datetime
 
 from . import db
@@ -8,13 +10,13 @@ from .nlp.pipeline import AnalysisResult
 
 
 class AnalysisRepository:
-    def save(self, application_id: int, result: AnalysisResult) -> datetime:
+    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime:
         """Uloží analýzu v jednej transakcii.
 
         cv_analyses má 1 riadok na prihlášku (pri opakovanej analýze sa prepíše),
         match_scores uchováva históriu – každá analýza je nový riadok.
         """
-        with db.get_connection() as conn:
+        with (db.get_connection() if connection is None else nullcontext(connection)) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -37,8 +39,8 @@ class AnalysisRepository:
             cur.execute(
                 """
                 INSERT INTO match_scores (application_id, score_percentage, text_similarity, skill_coverage,
-                                          missing_skills_json, matched_skills_json)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                                          missing_skills_json, matched_skills_json, analysis_json)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     application_id,
@@ -47,12 +49,14 @@ class AnalysisRepository:
                     result.skill_coverage,
                     json.dumps(result.missing_skills),
                     json.dumps(result.matched_skills),
+                    json.dumps({k: v for k, v in asdict(result).items() if k not in ("raw_text", "candidate_name", "candidate_phone")}, ensure_ascii=False),
                 ),
             )
             score_id = cur.lastrowid
             cur.execute("SELECT analyzed_at FROM match_scores WHERE id = %s", (score_id,))
             analyzed_at = cur.fetchone()[0]
-            conn.commit()
+            if connection is None:
+                conn.commit()
             return analyzed_at
 
     def get_latest(self, application_id: int) -> dict | None:
@@ -62,7 +66,7 @@ class AnalysisRepository:
             cur.execute(
                 """
                 SELECT m.application_id, m.score_percentage, m.text_similarity, m.skill_coverage,
-                       m.matched_skills_json, m.missing_skills_json, m.analyzed_at,
+                       m.matched_skills_json, m.missing_skills_json, m.analyzed_at, m.analysis_json,
                        c.skills_json, c.education_json, c.experience_years
                 FROM match_scores m
                 LEFT JOIN cv_analyses c ON c.application_id = m.application_id
@@ -75,6 +79,9 @@ class AnalysisRepository:
             row = cur.fetchone()
         if row is None:
             return None
+        snapshot = _json(row.get("analysis_json"), None)
+        if snapshot is not None:
+            return {**snapshot, "application_id": row["application_id"], "analyzed_at": row["analyzed_at"]}
         return {
             "application_id": row["application_id"],
             "score_percentage": _num(row["score_percentage"]),
@@ -86,6 +93,9 @@ class AnalysisRepository:
             "education": _json(row["education_json"], {"degrees": [], "institutions": []}),
             "experience_years": _num(row["experience_years"]),
             "analyzed_at": row["analyzed_at"],
+            "provider": "legacy_local",
+            "model_version": "legacy-rules",
+            "scoring_version": "legacy-60-40",
         }
 
 

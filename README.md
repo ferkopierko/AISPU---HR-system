@@ -1,5 +1,13 @@
 # SmartRecruit AI – HR systém
 
+**Azure LLM bez vlastného tréningu:** pripravené je aj pripojenie nasadenia `gpt-4.1-mini` cez Responses API. Pozri [docs/faza-5-azure-llm.md](docs/faza-5-azure-llm.md). Výber je `AI_PROVIDER=azure_llm`; model extrahuje zručnosti a citácie, skóre stále počíta aplikácia.
+
+**Lokálna Azure integrácia:** pozri [návod na Azure Custom NER](docs/faza-4-azure-ner.md).
+Predvolene ostávajú `local_rules`, kým nie je nastavené Azure pripojenie.
+Vlastný tréning potrebuje iba variant Custom NER; variant Azure LLM ho nevyžaduje.
+Nové analýzy bežia na pozadí a skóre vyjadruje iba vážené pokrytie požiadaviek;
+podobnosť textu už skóre nemení. Staršie analýzy zostávajú označené pôvodným výpočtom.
+
 HR systém pre správu pracovných pozícií a prihlášok s automatickou analýzou CV.
 Uchádzač sa prihlási na pozíciu a nahrá životopis, systém ho pomocou NLP vyhodnotí
 voči požiadavkám pozície a HR manažér vidí všetky prihlášky zoradené podľa zhody.
@@ -43,7 +51,7 @@ V databáze sú pripravené 3 pozície: *Junior Backend Developer*, *Data Analys
 ### Ako to vyskúšať
 
 1. Prihlás sa ako `jan@test.sk`, otvor pozíciu, nahraj CV (PDF alebo DOCX, max. 5 MB),
-   potvrď súhlas a odošli. Hneď uvidíš skóre zhody a splnené / chýbajúce zručnosti.
+   potvrď súhlas a odošli. Prihláška sa uloží a po dokončení analýzy uvidíš vážené pokrytie požiadaviek a textové podklady.
 2. Odhlás sa, prihlás ako `hr@firma.sk` a otvor **HR prehľad**: prihlášky so skóre,
    filtre, zoradenie podľa zhody, detail analýzy a zmena stavu prihlášky.
 3. Na jednu pozíciu sa dá jeden účet prihlásiť len raz. Na viac prihlášok si zaregistruj
@@ -176,3 +184,6 @@ cd frontend; npm install; npm run dev      # http://localhost:5173
 - **Filter „Všetky pozície“** v HR prehľade ponúka iba pozície s prihláškou – frontend má
   použiť `GET /api/admin/jobs` (backend netreba meniť).
 - *(voliteľné)* História zmien stavu prihlášky.
+# Azure AI integrácia (lokálne rozpracovaná)
+
+Postup, konfigurácia, API, syntetické tréningové dáta a obmedzenia sú v [docs/faza-4-azure-ner.md](docs/faza-4-azure-ner.md). Predvolene zostáva `AI_PROVIDER=local_rules`; Azure sa zapína výslovne až po vytvorení služby a natrénovaní Custom NER modelu. Analýzy teraz používajú trvalý rad úloh a asynchrónne API (POST vracia 202, výsledok sa načíta následne).

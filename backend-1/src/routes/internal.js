@@ -29,6 +29,23 @@ function optionalText(value, max) {
   return value.trim().slice(0, max);
 }
 
+// Authorize BEFORE external AI calls; requirements are never accepted from the browser.
+router.get('/applications/:id/analysis-context', requireAuth, async (req, res) => {
+  const id = parseId(req.params.id);
+  const { recordset } = await db.query(
+    `SELECT a.user_id, a.job_id, j.requirements, j.description, j.title
+     FROM dbo.applications a JOIN dbo.jobs j ON j.id = a.job_id WHERE a.id = @id`, { id }
+  );
+  const application = recordset[0];
+  if (!application) throw new HttpError(404, 'Prihláška neexistuje');
+  if (application.user_id !== req.session.userId && req.session.role !== 'admin') {
+    throw new HttpError(403, 'K tejto prihláške nemáte prístup');
+  }
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ applicationId: id, jobId: application.job_id,
+    requirements: application.requirements || application.description || application.title });
+});
+
 // PUT /api/internal/applications/:id/cv
 //   { filename, contentType, data (base64), candidateName?, candidatePhone? }
 router.put('/applications/:id/cv', requireAuth, async (req, res) => {
@@ -51,15 +68,13 @@ router.put('/applications/:id/cv', requireAuth, async (req, res) => {
     throw new HttpError(403, 'Prihláška nepatrí prihlásenému používateľovi');
   }
 
-  // opakovaná analýza nahradí CV aj kontakt
-  await db.query(
-    `UPDATE dbo.applications SET candidate_name = @name, candidate_phone = @phone WHERE id = @id;
-     MERGE dbo.application_cvs AS t
+  // A retry must keep the same CV as the queued text, including concurrent submissions.
+  const saved = await db.query(
+    `MERGE dbo.application_cvs WITH (HOLDLOCK) AS t
      USING (SELECT @id AS application_id) AS s ON t.application_id = s.application_id
-     WHEN MATCHED THEN UPDATE SET filename = @filename, content_type = @contentType,
-          size_bytes = @size, data = @file, uploaded_at = SYSUTCDATETIME()
      WHEN NOT MATCHED THEN INSERT (application_id, filename, content_type, size_bytes, data)
-          VALUES (@id, @filename, @contentType, @size, @file);`,
+          VALUES (@id, @filename, @contentType, @size, @file);
+     SELECT CASE WHEN data=@file THEN 1 ELSE 0 END AS same_cv FROM dbo.application_cvs WHERE application_id=@id;`,
     {
       id,
       name: optionalText(req.body.candidateName, 200),
@@ -70,6 +85,10 @@ router.put('/applications/:id/cv', requireAuth, async (req, res) => {
       file,
     }
   );
+  if (saved.recordset[0]?.same_cv !== 1) throw new HttpError(409, 'K prihláške už je uložený iný životopis. Opakujte analýzu pôvodného CV.');
+  await db.query('UPDATE dbo.applications SET candidate_name=@name, candidate_phone=@phone WHERE id=@id', {
+    id, name: optionalText(req.body.candidateName, 200), phone: optionalText(req.body.candidatePhone, 50),
+  });
   res.status(204).end();
 });
 

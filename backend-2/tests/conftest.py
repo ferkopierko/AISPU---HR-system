@@ -1,4 +1,10 @@
 import io
+import os
+
+# Tests must never spend real Azure credit, even when the developer's .env enables LLM.
+# Explicit Azure tests inject httpx.MockTransport and fake credentials.
+os.environ["AI_PROVIDER"] = "local_rules"
+os.environ["ANALYSIS_WORKER_ENABLED"] = "false"
 
 import pytest
 from docx import Document
