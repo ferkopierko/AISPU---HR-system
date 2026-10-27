@@ -76,6 +76,7 @@ services:
       AZURE_SQL_PASSWORD: ${MSSQL_SA_PASSWORD}
       AZURE_SQL_TRUST_CERT: "true"
       SESSION_SECRET: ${SESSION_SECRET}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ORIGIN: http://localhost:5173
       BACKEND1_PORT: 3001
     ports:
@@ -96,6 +97,8 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       CORS_ORIGIN: http://localhost:5173
       MAX_UPLOAD_MB: 5
+      BACKEND1_URL: http://backend-1:3001   # sem sa posiela CV po analýze
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
     ports:
       - "8000:8000"
 

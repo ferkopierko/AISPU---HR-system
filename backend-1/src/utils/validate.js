@@ -34,4 +34,26 @@ function parsePassword(value) {
   return value;
 }
 
-module.exports = { parseId, parseEmail, parsePassword };
+/** Meno a priezvisko: povinné, 2–200 znakov. */
+function parseFullName(value) {
+  const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+  if (name.length < 2) throw new HttpError(400, 'Meno je povinné');
+  if (name.length > 200) throw new HttpError(400, 'Meno môže mať najviac 200 znakov');
+  return name;
+}
+
+const PHONE_RE = /^\+?[\d\s()/-]+$/;
+
+/** Telefón: voliteľný (prázdny = null), 9–15 číslic, povolené + medzery ( ) / -. */
+function parsePhone(value) {
+  if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) return null;
+  if (typeof value !== 'string') throw new HttpError(400, 'Telefón musí byť text');
+  const phone = value.trim().replace(/\s+/g, ' ');
+  const digits = phone.replace(/\D/g, '').length;
+  if (phone.length > 50 || !PHONE_RE.test(phone) || digits < 9 || digits > 15) {
+    throw new HttpError(400, 'Neplatné telefónne číslo');
+  }
+  return phone;
+}
+
+module.exports = { parseId, parseEmail, parsePassword, parseFullName, parsePhone };

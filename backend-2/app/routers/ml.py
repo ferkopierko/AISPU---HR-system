@@ -2,8 +2,9 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, UploadFile, status
+from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Path, UploadFile, status
 
+from ..backend1 import SESSION_COOKIE, Backend1Client, Backend1Error, get_backend1
 from ..config import settings
 from ..nlp.parser import FileParseError, UnsupportedFileError
 from ..nlp.pipeline import analyze_cv
@@ -27,13 +28,15 @@ def get_repository() -> AnalysisRepository:
     "/analyze",
     response_model=AnalysisResponse,
     status_code=status.HTTP_201_CREATED,
-    responses={413: {"model": ErrorResponse}, 415: {"model": ErrorResponse}, 422: {"model": ErrorResponse}},
+    responses={code: {"model": ErrorResponse} for code in (401, 403, 404, 413, 415, 422, 502)},
 )
 def analyze(
     file: Annotated[UploadFile, File(description="CV vo formáte PDF alebo DOCX")],
     application_id: Annotated[int, Form(gt=0, le=2_147_483_647, description="applications.id z Azure SQL")],
     requirements: Annotated[str, Form(min_length=1, max_length=20_000, description="Požiadavky pozície – text alebo JSON pole")],
     repo: Annotated[AnalysisRepository, Depends(get_repository)],
+    backend1: Annotated[Backend1Client, Depends(get_backend1)],
+    session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,
 ):
     data = file.file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
@@ -47,6 +50,14 @@ def analyze(
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(err)) from err
     except FileParseError as err:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(err)) from err
+
+    # CV + kontakt do Backendu 1 (Azure SQL). Backend 1 zároveň overí, že prihláška
+    # patrí prihlásenému uchádzačovi – ak nie, analýza sa neuloží.
+    try:
+        backend1.store_cv(application_id, session_cookie, file.filename or f"cv.{result.file_kind}",
+                          result.file_kind, data, result.candidate_name, result.candidate_phone)
+    except Backend1Error as err:
+        raise HTTPException(err.status, err.message) from err
 
     analyzed_at = repo.save(application_id, result)
     return AnalysisResponse(

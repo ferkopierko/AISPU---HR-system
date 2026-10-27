@@ -108,8 +108,39 @@ def test_skill_match_and_score():
 
 
 def test_requirements_json_array():
-    assert pipeline.parse_requirements('["Python", " team leadership "]') == ("Python, team leadership", ["Python", "team leadership"])
-    assert pipeline.parse_requirements("[not json") == ("[not json", [])
+    assert pipeline.parse_requirements('["Python", " team leadership "]') == (
+        "Python, team leadership", ["Python", "team leadership"], None)
+    assert pipeline.parse_requirements("[not json") == ("[not json", [], None)
+
+
+def test_requirements_weighted():
+    text, items, weights = pipeline.parse_requirements('[{"skill":"java","weight":30},{"skill":"SQL","weight":70}]')
+    assert text == "java, SQL" and items == ["java", "SQL"] and weights == {"java": 30, "SQL": 70}
+    # neplatné položky (bez váhy, váha 0, bool) -> voľný text
+    for raw in ['[{"skill":"java"}]', '[{"skill":"java","weight":0}]', '[{"skill":"java","weight":true}]']:
+        assert pipeline.parse_requirements(raw)[2] is None
+
+
+def test_weighted_skill_match():
+    matched, missing, cov = matcher.skill_match(["java", "sql"], ["java"], {"java": 60, "sql": 40})
+    assert matched == ["java"] and missing == ["sql"] and cov == pytest.approx(0.6)
+
+
+def test_pipeline_weighted(cv_pdf):
+    # CV má Node.js a Docker, nemá Kubernetes; váhy 50 + 30 = 80 zo 100
+    req = '[{"skill":"Node.js","weight":50},{"skill":"Docker","weight":30},{"skill":"Kubernetes","weight":20}]'
+    r = pipeline.analyze_cv("cv.pdf", cv_pdf, req)
+    assert r.required_skills == ["node.js", "docker", "kubernetes"]
+    assert r.matched_skills == ["node.js", "docker"] and r.missing_skills == ["kubernetes"]
+    assert r.skill_coverage == 80.0
+    # rovnaké zručnosti bez váh -> 2/3
+    assert pipeline.analyze_cv("cv.pdf", cv_pdf, '["Node.js","Docker","Kubernetes"]').skill_coverage == pytest.approx(66.67)
+
+
+def test_pipeline_weighted_multi_skill_item(cv_pdf):
+    # „Docker and Kubernetes“ = 2 zručnosti, váha 40 sa delí 20 + 20
+    r = pipeline.analyze_cv("cv.pdf", cv_pdf, '[{"skill":"Python","weight":60},{"skill":"Docker and Kubernetes","weight":40}]')
+    assert r.skill_coverage == 80.0
 
 
 def test_full_pipeline(cv_pdf):

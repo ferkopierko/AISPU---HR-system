@@ -7,6 +7,8 @@ const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const applicationRoutes = require('./routes/applications');
 const adminRoutes = require('./routes/admin');
+const adminJobRoutes = require('./routes/adminJobs');
+const internalRoutes = require('./routes/internal');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -19,7 +21,6 @@ app.use(cors({
   origin: config.corsOrigin,
   credentials: true, // povoliť session cookie z frontendu
 }));
-app.use(express.json({ limit: '100kb' }));
 app.use(session({
   name: 'hr.sid',
   secret: config.sessionSecret,
@@ -32,6 +33,11 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 8, // 8 hodín
   },
 }));
+
+// Interné API pre Backend 2 – vlastný JSON parser s vyšším limitom (CV v base64),
+// preto musí byť pred globálnym parserom.
+app.use('/api/internal', internalRoutes);
+app.use(express.json({ limit: '100kb' }));
 
 app.get('/health', async (req, res) => {
   try {
@@ -46,6 +52,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
+app.use('/api/admin/jobs', adminJobRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use(notFound);

@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 
+from app.backend1 import Backend1Error, get_backend1
 from app.main import app
 from app.routers.ml import MAX_BYTES, get_repository
 
@@ -35,6 +36,20 @@ class FakeRepository:
         return self.rows.get(application_id)
 
 
+class FakeBackend1:
+    """Zaznamená odovzdané CV; `fail` simuluje odmietnutie Backendom 1."""
+
+    def __init__(self):
+        self.calls = []
+        self.fail = None
+
+    def store_cv(self, application_id, session_cookie, filename, kind, data, name, phone):
+        if self.fail:
+            raise self.fail
+        self.calls.append(dict(application_id=application_id, cookie=session_cookie, filename=filename,
+                               kind=kind, size=len(data), name=name, phone=phone))
+
+
 @pytest.fixture
 def repo():
     fake = FakeRepository()
@@ -44,8 +59,17 @@ def repo():
 
 
 @pytest.fixture
-def client(repo):
-    return TestClient(app)  # bez `with` -> lifespan (MySQL) sa nespúšťa
+def backend1(repo):
+    fake = FakeBackend1()
+    app.dependency_overrides[get_backend1] = lambda: fake
+    return fake
+
+
+@pytest.fixture
+def client(repo, backend1):
+    c = TestClient(app)  # bez `with` -> lifespan (MySQL) sa nespúšťa
+    c.cookies.set("hr.sid", "s%3Asession-uchadzaca")
+    return c
 
 
 def post(client, data, name="cv.pdf", application_id="7", requirements=REQ):
@@ -114,3 +138,25 @@ def test_cors(client):
         "Origin": "http://evil.example", "Access-Control-Request-Method": "POST",
     })
     assert "access-control-allow-origin" not in r.headers
+
+
+def test_cv_and_contact_sent_to_backend1(client, backend1, cv_pdf):
+    assert post(client, cv_pdf, name="Moje CV.pdf").status_code == 201
+    assert backend1.calls == [dict(
+        application_id=7, cookie="s%3Asession-uchadzaca", filename="Moje CV.pdf", kind="pdf",
+        size=len(cv_pdf), name="Jan Novak", phone="+421 905 123 456",
+    )]
+
+
+def test_backend1_rejection_stops_analysis(client, repo, backend1, cv_pdf):
+    backend1.fail = Backend1Error(403, "Prihláška nepatrí prihlásenému používateľovi")
+    r = post(client, cv_pdf)
+    assert r.status_code == 403 and "nepatrí" in r.json()["detail"]
+    assert repo.rows == {}  # analýza sa neuložila
+    backend1.fail = Backend1Error(502, "Backend 1 je nedostupný")
+    assert post(client, cv_pdf).status_code == 502
+
+
+def test_bad_file_not_sent_to_backend1(client, backend1):
+    post(client, b"hello", name="cv.txt")
+    assert backend1.calls == []

@@ -151,9 +151,19 @@ score = 0.6 × skill_coverage + 0.4 × text_similarity
   (typicky 10–30 %), preto rozhoduje hlavne pokrytie zručností.
 - Ak v požiadavkách nie je žiadna rozpoznaná zručnosť, `score = text_similarity`.
 
-**Požiadavky** môžu byť voľný text alebo JSON pole (formát `jobs.requirements`
-v Azure SQL). Položka poľa, ktorú slovník nepozná (napr. `"team leadership"`),
-sa berie ako vlastná zručnosť a v CV sa hľadá ako fráza.
+**Požiadavky** majú rovnaké formáty ako `jobs.requirements` v Azure SQL:
+
+| Formát | Príklad | Pokrytie zručností |
+|--------|---------|--------------------|
+| voľný text | `"Java, SQL, 2 roky praxe"` | zručnosti nájdené v texte, každá rovnakú váhu |
+| pole zručností | `["Java", "SQL"]` | každá zručnosť rovnakú váhu |
+| pole s váhami | `[{"skill":"Java","weight":70}, {"skill":"SQL","weight":30}]` | súčet váh nájdených / súčet všetkých váh |
+
+Príklad s váhami: CV obsahuje Javu, ale nie SQL → `skill_coverage = 70 %`
+(bez váh by to bolo 50 %). Ak položka obsahuje viac zručností („Docker and Kubernetes“),
+jej váha sa medzi ne rozdelí rovnakým dielom. Pri váhach sa berú iba zručnosti z poľa
+(ďalšie nájdené v texte by nemali váhu). Položka, ktorú slovník nepozná (napr.
+`"team leadership"`), sa berie ako vlastná zručnosť a v CV sa hľadá ako fráza.
 
 > **Obmedzenie:** model `en_core_web_sm` je anglický. Technológie a slovenské
 > tituly sa rozpoznajú aj v slovenskom CV, ale lemmatizácia a NER fungujú
@@ -169,7 +179,7 @@ sa berie ako vlastná zručnosť a v CV sa hľadá ako fráza.
 |------|-----|-------|
 | `file` | súbor | CV, PDF alebo DOCX, max. 5 MB |
 | `application_id` | int > 0 | `applications.id` z Azure SQL |
-| `requirements` | text (1–20 000 znakov) | požiadavky pozície, text alebo JSON pole |
+| `requirements` | text (1–20 000 znakov) | požiadavky pozície – text, JSON pole alebo pole s váhami (5.4) |
 
 Odpoveď `201`:
 
@@ -241,3 +251,45 @@ Povolené iba `CORS_ORIGIN`, metódy `GET` a `POST`, `allow_credentials=True`.
 | Opakovaná analýza | ✅ `cv_analyses` 1 riadok (prepísaný), `match_scores` 2 riadky (história), `GET` vráti novší |
 
 Testovacie riadky boli po teste z databázy zmazané.
+
+## 8. Váhy zručností (2026-10-24)
+
+`requirements` vo formáte `[{"skill":"java","weight":30}, …]` sa už nespracúva ako
+obyčajný text – váhy určujú `skill_coverage` (pozri 5.4). Zmeny:
+[`pipeline.py`](../backend-2/app/nlp/pipeline.py) (`parse_requirements` vracia aj váhy),
+[`matcher.py`](../backend-2/app/nlp/matcher.py) (`skill_match` s váhami). Formát odpovede API
+sa nemenil, frontend netreba upravovať.
+
+Testy `python -m pytest` – 28/28 ✅ (nové: parsovanie váh, neplatné položky → text,
+vážené pokrytie 60 %, celé CV s váhami 80 % vs. bez váh 66,67 %, delenie váhy viacerých zručností).
+
+## 9. Meno, telefón a odovzdanie CV do Backendu 1 (2026-10-27)
+
+**Kontakt z CV** ([`nlp/contact.py`](../backend-2/app/nlp/contact.py)) – heuristika:
+
+| Údaj | Ako |
+|------|-----|
+| Meno | spaCy `PERSON` v prvých 6 riadkoch, inak prvý riadok v tvare 2–4 slov s veľkým začiatočným písmenom (anglický model slovenské mená často nespozná). Riadky „Curriculum Vitae“, „Životopis“… sa preskočia. |
+| Telefón | 9–15 číslic; prednosť má číslo pri „Tel / Phone / Mobil“, potom s predvoľbou `+`. Obdobia `2018 - 2021` a dátumy `03/2019` sa vynechajú. |
+
+Na 3 vzorových CV v `sample-data/cv/` sú meno aj telefón rozpoznané správne.
+
+**Odovzdanie CV** ([`backend1.py`](../backend-2/app/backend1.py)) – po analýze sa súbor
+(base64), meno a telefón pošlú na `PUT {BACKEND1_URL}/api/internal/applications/{id}/cv`
+s hlavičkou `X-Internal-Key` a preposlanou cookie `hr.sid`. Analýza sa do MySQL uloží
+**až keď Backend 1 CV prijme**:
+
+| Backend 1 vráti | `POST /api/ml/analyze` vráti |
+|-----------------|------------------------------|
+| `204` | `201` + analýza |
+| `401` / `403` / `404` (cudzia / neexistujúca prihláška) | rovnaký kód, analýza sa neuloží |
+| `5xx` alebo nedostupný | `502` |
+| `INTERNAL_API_KEY` nie je nastavený | CV sa neposiela, analýza normálne (lokálny vývoj) |
+
+Nové premenné: `INTERNAL_API_KEY` (rovnaký ako v Backende 1), `BACKEND1_URL`
+(default `http://localhost:3001`, v Dockeri `http://backend-1:3001`). `httpx` sa presunul
+z testovacích závislostí medzi bežné.
+
+Testy `python -m pytest` – 51/51 ✅ (nové: 16 na meno a telefón, klient Backendu 1 –
+hlavičky, cookie, base64, chyby 404 / 500 / nedostupnosť, a API – odovzdanie CV,
+odmietnutie zastaví uloženie analýzy).
