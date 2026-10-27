@@ -79,6 +79,7 @@ services:
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       CORS_ORIGIN: http://localhost:5173
       BACKEND1_PORT: 3001
+      BACKEND2_URL: http://backend-2:8000   # mazanie analýz CV (GDPR)
     ports:
       - "3001:3001"
 

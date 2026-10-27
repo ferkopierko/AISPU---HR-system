@@ -484,3 +484,54 @@ registrácii, profil v `login` / `me`, `PUT /me` (rola a email sa nedajú podvrh
 nové polia pozície + 10 neplatných vstupov, `publishedAt` sa pri opätovnom otvorení nemení,
 uzávierka dnes platí / včera skrytá a prihláška zamietnutá, zoradenie katalógu.
 Testovacie dáta boli zmazané.
+
+## 14. GDPR mazanie, stiahnutie prihlášky, upozornenie na e-mail (2026-10-27)
+
+### Vymazanie po 6 mesiacoch
+
+[`services/retention.js`](../backend-1/src/services/retention.js) – úloha v Backende 1, beží
+minútu po štarte a potom raz denne. Prihlášky staršie ako `RETENTION_MONTHS` (default **6**)
+od podania sa zmažú aj s CV a poznámkami HR (kaskáda v Azure SQL) a s analýzou CV v MySQL
+(cez interné API Backendu 2). Účet uchádzača ostáva.
+
+Najprv sa maže v MySQL. Ak je Backend 2 nedostupný, nezmaže sa nič a skúsi sa to o deň –
+inak by v MySQL ostali osobné dáta bez prihlášky. Pozor: úloha beží iba vtedy, keď beží
+Backend 1, a potrebuje `INTERNAL_API_KEY` a `BACKEND2_URL`.
+
+### Stiahnutie prihlášky
+
+| Metóda | Cesta | Prístup | Odpoveď |
+|--------|-------|---------|---------|
+| POST | `/api/applications/:id/withdraw` | vlastník prihlášky | `200 { application: { id, status: "withdrawn" } }` · `404` cudzia / neexistuje · `409` už stiahnutá alebo zamietnutá · `502` Backend 2 nedostupný |
+
+- Stav `withdrawn` – HR prihlášku vidí ďalej (aj meno z profilu), ale CV, kontakt z CV
+  a analýza CV sa zmažú. Poznámky HR ostávajú.
+- Stiahnuť sa dá v každom stave okrem `rejected`. Znova sa na pozíciu prihlásiť nedá (`409`).
+- Po stiahnutí: HR nemôže meniť stav (`409`), nové CV sa neprijme (`409`).
+
+### Upozornenie pre HR na e-mail
+
+Systém e-maily neposiela. Keď HR zmení stav na `interview`, `accepted` alebo `rejected`,
+prihláška dostane upozornenie, že treba uchádzačovi napísať. HR po odoslaní e-mailu
+upozornenie zruší.
+
+| Metóda | Cesta | Odpoveď |
+|--------|-------|---------|
+| PATCH | `/api/admin/applications/:id/status` | ako predtým + `application.notification.pendingStatus` · `409` stiahnutá prihláška |
+| POST | `/api/admin/applications/:id/notified` | `200 { application: { id, notification } }` · `409` nič nečaká · `404` |
+
+V `GET /api/admin/applications` má každá prihláška
+`notification: { pendingStatus: "interview" | "accepted" | "rejected" | null, notifiedAt }`.
+Rovnaký stav znova upozornenie nemení, zmena na `reviewing` ho zruší, stiahnutie tiež.
+
+### Schéma a konfigurácia
+
+- `applications.status` + `withdrawn`; nové `notify_status` (CHECK), `notified_at`.
+- Backend 2: `POST /api/ml/internal/delete { application_ids }` s `X-Internal-Key`.
+- Nové premenné Backendu 1: `BACKEND2_URL` (v Dockeri `http://backend-2:8000`), `RETENTION_MONTHS`.
+
+**Test** (lokálny Docker) – 9/9 ✅: upozornenie (vznik, rovnaký stav, zrušenie, `/notified`,
+opakovane `409`), stiahnutie (cudzí `404`, anonym `401`; CV, kontakt z CV a analýza zmazané;
+upozornenie zrušené; potom `409` pre stav, CV aj novú prihlášku; zamietnutú nejde), GDPR mazanie
+(Backend 2 vypnutý → nič; 7-mesačná zmazaná vrátane CV, poznámok a MySQL, 5-mesačná ostala, účet
+ostal). Backend 2 pytest 54/54. Testovacie dáta boli zmazané.

@@ -293,3 +293,29 @@ z testovacích závislostí medzi bežné.
 Testy `python -m pytest` – 51/51 ✅ (nové: 16 na meno a telefón, klient Backendu 1 –
 hlavičky, cookie, base64, chyby 404 / 500 / nedostupnosť, a API – odovzdanie CV,
 odmietnutie zastaví uloženie analýzy).
+
+## 10. Názvy zručností a synonymá (2026-10-27)
+
+**Pôvodné názvy** – `matched_skills`, `missing_skills` a `cv_skills` sa už nevracajú
+malými písmenami. Zručnosť z poľa požiadaviek sa vráti presne tak, ako ju napísal HR
+(`"REST API"`, `"Kubernetes (k8s)"`), ostatné podľa `DISPLAY` v
+[`skills.py`](../backend-2/app/nlp/skills.py) (`JavaScript`, `PostgreSQL`, `CI/CD`).
+Porovnáva sa ďalej podľa interných kľúčov, výpočet skóre sa nezmenil. Analýzy uložené
+pred touto zmenou majú v MySQL staré názvy, kým sa CV neanalyzuje znova.
+
+**Synonymá** – slovník má teraz ~90 zručností. Pribudli varianty zápisu (`ES6`, `psql`,
+`Docker Compose`, `GitHub Actions` → CI/CD, `Ubuntu` → Linux…), slovenské výrazy
+(`analýza dát`, `strojové učenie`, `objektovo orientované programovanie`, `anglický jazyk`…)
+a nové zručnosti: Databázy, Testovanie softvéru, Riadenie projektov, Komunikácia,
+Tímová práca, Účtovníctvo. Slovenské výrazy sú v základnom tvare a najčastejších pádoch –
+anglický model slovenčinu nelematizuje.
+
+**Overenie podobnosti textu** (podnet „40 % = váha“): hodnota sa naozaj počíta, 40 % bola
+náhoda. Pre tie isté požiadavky vyšlo 6,6 % / 22,5 % / 2,5 % na troch vzorových CV.
+**Známy problém:** frontend posiela ako `requirements` iba zoznam zručností, takže kosínusová
+podobnosť meria hustotu týchto slov v CV – krátke CV (10 slov) dostalo 80 %, rovnaké CV so
+101 slovami 31 %. Úpravu modelu podobnosti (embedding, porovnanie s celým inzerátom) rieši
+iný člen tímu.
+
+Testy `python -m pytest` – 74/74 ✅ (nové: zobrazované názvy z poľa aj z voľného textu,
+`DISPLAY` pre každú zručnosť, 17 synoným, žiadne falošné zhody na bežnom texte).

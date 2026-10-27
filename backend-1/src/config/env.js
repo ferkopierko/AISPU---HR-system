@@ -31,6 +31,10 @@ module.exports = Object.freeze({
   // Spoločný kľúč s Backendom 2 pre /api/internal/* (odovzdanie CV).
   // Ak nie je nastavený, interné endpointy vracajú 503.
   internalApiKey: process.env.INTERNAL_API_KEY || null,
+  // Backend 2 – mazanie analýz CV pri stiahnutí prihlášky a po uplynutí lehoty (v Dockeri http://backend-2:8000)
+  backend2Url: (process.env.BACKEND2_URL || 'http://localhost:8000').replace(/\/+$/, ''),
+  // GDPR: prihlášky staršie ako toľko mesiacov sa raz denne zmažú (text pri súhlase sľubuje 6)
+  retentionMonths: Number(process.env.RETENTION_MONTHS) || 6,
   azureSql: Object.freeze({
     server: process.env.AZURE_SQL_HOST,
     port: Number(process.env.AZURE_SQL_PORT) || 1433,

@@ -59,6 +59,11 @@ Backend je pripravený, popis API je v [docs/faza-2-backend-1.md](../docs/faza-2
 - **Registrácia a profil** – `fullName` (povinné) a `phone` v `POST /api/auth/register`;
   profil `PUT /api/auth/me`, heslo `PUT /api/auth/me/password`. `/register` a `/login`
   prihláseného presmerovať (iba frontend).
+- **Stiahnutie prihlášky** – tlačidlo v „Moje prihlášky“ → `POST /api/applications/:id/withdraw`;
+  nový stav `withdrawn` treba doplniť do `STATUS_LABELS` (napr. „Stiahnutá“).
+- **Upozornenie pre HR na e-mail** – `notification.pendingStatus` v zozname prihlášok
+  (ukázať „Poslať e-mail“), po odoslaní `POST /api/admin/applications/:id/notified`.
+- **Text GDPR súhlasu** – vymazanie po 6 mesiacoch backend už naozaj robí, text môže ostať.
 - **Nové údaje pozície** – `location`, `employmentType`, `workMode`, `salaryMin/Max/Period`,
   `responsibilities`, `benefits`, `publishedAt`, `deadline` (popis v docs/faza-2-backend-1.md, sekcia 13).
 - ✅ **Váhy zručností** – Backend 2 ich už používa pri výpočte pokrytia, frontend netreba meniť.

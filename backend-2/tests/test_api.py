@@ -35,6 +35,12 @@ class FakeRepository:
     def get_latest(self, application_id):
         return self.rows.get(application_id)
 
+    def delete(self, application_ids):
+        found = [i for i in application_ids if i in self.rows]
+        for i in found:
+            del self.rows[i]
+        return len(found)
+
 
 class FakeBackend1:
     """Zaznamená odovzdané CV; `fail` simuluje odmietnutie Backendom 1."""
@@ -86,8 +92,8 @@ def test_analyze_pdf_and_get_result(client, repo, cv_pdf):
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["application_id"] == 7
-    assert body["matched_skills"] == ["node.js", "typescript", "docker"]
-    assert body["missing_skills"] == ["kubernetes"]
+    assert body["matched_skills"] == ["Node.js", "TypeScript", "Docker"]
+    assert body["missing_skills"] == ["Kubernetes"]
     assert body["skill_coverage"] == 75.0
     assert body["education"]["degrees"] == ["master"]
     assert body["experience_years"] is not None
@@ -101,7 +107,7 @@ def test_analyze_pdf_and_get_result(client, repo, cv_pdf):
 def test_analyze_docx(client, cv_docx):
     r = post(client, cv_docx, name="cv.docx")
     assert r.status_code == 201
-    assert "node.js" in r.json()["cv_skills"]
+    assert "Node.js" in r.json()["cv_skills"]
 
 
 def test_result_not_found(client):
@@ -160,3 +166,35 @@ def test_backend1_rejection_stops_analysis(client, repo, backend1, cv_pdf):
 def test_bad_file_not_sent_to_backend1(client, backend1):
     post(client, b"hello", name="cv.txt")
     assert backend1.calls == []
+
+
+KEY = "test-internal-key"
+
+
+@pytest.fixture
+def internal_key(monkeypatch):
+    from app.routers import internal
+    monkeypatch.setattr(internal, "settings", type("S", (), {"internal_api_key": KEY})())
+
+
+def test_internal_delete(client, repo, cv_pdf, internal_key):
+    post(client, cv_pdf, application_id="7")
+    post(client, cv_pdf, application_id="8")
+    r = client.post("/api/ml/internal/delete", json={"application_ids": [7, 7, 99]}, headers={"X-Internal-Key": KEY})
+    assert r.status_code == 200 and r.json() == {"deleted": 1}
+    assert client.get("/api/ml/results/7").status_code == 404
+    assert client.get("/api/ml/results/8").status_code == 200
+
+
+def test_internal_delete_auth_and_validation(client, internal_key):
+    url = "/api/ml/internal/delete"
+    assert client.post(url, json={"application_ids": [1]}).status_code == 403
+    assert client.post(url, json={"application_ids": [1]}, headers={"X-Internal-Key": "zly"}).status_code == 403
+    for body in ({"application_ids": []}, {"application_ids": [0]}, {}):
+        assert client.post(url, json=body, headers={"X-Internal-Key": KEY}).status_code == 422
+
+
+def test_internal_delete_not_configured(client, monkeypatch):
+    from app.routers import internal
+    monkeypatch.setattr(internal, "settings", type("S", (), {"internal_api_key": None})())
+    assert client.post("/api/ml/internal/delete", json={"application_ids": [1]}).status_code == 503
