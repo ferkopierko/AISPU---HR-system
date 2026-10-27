@@ -55,6 +55,21 @@ class AnalysisRepository:
             conn.commit()
             return analyzed_at
 
+    def delete(self, application_ids: list[int]) -> int:
+        """Zmaže analýzy (text CV, zručnosti, skóre) prihlášok – GDPR. Vráti počet prihlášok s dátami."""
+        if not application_ids:
+            return 0
+        marks = ", ".join(["%s"] * len(application_ids))
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT COUNT(DISTINCT application_id) FROM match_scores WHERE application_id IN ({marks})",
+                        application_ids)
+            found = cur.fetchone()[0]
+            cur.execute(f"DELETE FROM match_scores WHERE application_id IN ({marks})", application_ids)
+            cur.execute(f"DELETE FROM cv_analyses WHERE application_id IN ({marks})", application_ids)
+            conn.commit()
+            return found
+
     def get_latest(self, application_id: int) -> dict | None:
         """Posledná analýza prihlášky, alebo None."""
         with db.get_connection() as conn:

@@ -6,6 +6,7 @@ const HttpError = require('../utils/httpError');
 const { parseId } = require('../utils/validate');
 const { requireAuth } = require('../middleware/auth');
 const { PUBLIC_JOB_SQL } = require('../utils/jobInput');
+const { deleteAnalyses } = require('../services/backend2');
 
 const router = express.Router();
 const SQL_UNIQUE_VIOLATION = [2627, 2601];
@@ -63,6 +64,38 @@ router.post('/', requireAuth, async (req, res) => {
     }
     throw err;
   }
+});
+
+// POST /api/applications/:id/withdraw – uchádzač stiahne vlastnú prihlášku.
+// Stav sa zmení na 'withdrawn' (HR ju vidí ďalej), CV, kontakt z CV a analýza CV
+// v Backende 2 sa zmažú (GDPR). Znova sa na tú istú pozíciu prihlásiť nedá.
+router.post('/:id/withdraw', requireAuth, async (req, res) => {
+  const id = parseId(req.params.id);
+  const { recordset } = await db.query(
+    'SELECT status FROM dbo.applications WHERE id = @id AND user_id = @userId',
+    { id, userId: req.session.userId }
+  );
+  // cudzia prihláška = 404, aby sa nedalo zisťovať, ktoré id existujú
+  if (!recordset[0]) throw new HttpError(404, 'Prihláška neexistuje');
+  if (recordset[0].status === 'withdrawn') throw new HttpError(409, 'Prihláška už bola stiahnutá');
+  if (recordset[0].status === 'rejected') throw new HttpError(409, 'Zamietnutú prihlášku nie je možné stiahnuť');
+
+  try {
+    await deleteAnalyses([id]);
+  } catch (err) {
+    console.error('[withdraw] Backend 2:', err.message);
+    throw new HttpError(502, 'Prihlášku sa teraz nepodarilo stiahnuť, skúste to neskôr');
+  }
+
+  const { recordset: updated } = await db.query(
+    `DELETE FROM dbo.application_cvs WHERE application_id = @id;
+     UPDATE dbo.applications
+     SET status = N'withdrawn', candidate_name = NULL, candidate_phone = NULL, notify_status = NULL
+     OUTPUT inserted.id, inserted.status
+     WHERE id = @id`,
+    { id }
+  );
+  res.json({ application: updated[0] });
 });
 
 module.exports = router;

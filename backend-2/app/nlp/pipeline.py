@@ -5,6 +5,7 @@ import re
 from dataclasses import dataclass
 
 from . import contact, extract, matcher, parser, preprocess
+from .skills import DISPLAY
 
 
 @dataclass
@@ -87,6 +88,17 @@ def _weighted_skills(item_weights: dict[str, float]) -> dict[str, float]:
     return weights
 
 
+def _display_names(listed_items: list[str]) -> dict[str, str]:
+    """{kanonická zručnosť: tvar z požiadaviek pozície} – položka, ktorá je presne
+    jedna zručnosť („REST API“, „Postgres“), sa zobrazí tak, ako ju napísal HR."""
+    names: dict[str, str] = {}
+    for item in listed_items:
+        skills = _item_skills(item)
+        if len(skills) == 1:
+            names.setdefault(skills[0], item.strip())
+    return names
+
+
 def _contains_phrase(text_lower: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text_lower) is not None
 
@@ -117,17 +129,22 @@ def analyze_cv(filename: str, data: bytes, requirements: str) -> AnalysisResult:
         preprocess.tokens_for_vectorizer(job_doc), preprocess.tokens_for_vectorizer(cv_doc)
     )
 
+    names = _display_names(listed_items)
+
+    def label(skills: list[str]) -> list[str]:
+        return [names.get(s) or DISPLAY.get(s, s) for s in skills]
+
     return AnalysisResult(
         raw_text=raw_text,
         file_kind=kind,
         candidate_name=contact.extract_name(cv_doc),
         candidate_phone=contact.extract_phone(raw_text),
-        cv_skills=cv_skills,
+        cv_skills=label(cv_skills),
         education=extract.extract_education(cv_doc),
         experience_years=extract.extract_experience_years(raw_text),
-        required_skills=required,
-        matched_skills=matched,
-        missing_skills=missing,
+        required_skills=label(required),
+        matched_skills=label(matched),
+        missing_skills=label(missing),
         text_similarity=round(100 * similarity, 2),
         skill_coverage=None if coverage is None else round(100 * coverage, 2),
         score_percentage=matcher.final_score(similarity, coverage),

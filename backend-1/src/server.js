@@ -1,6 +1,7 @@
 const app = require('./app');
 const config = require('./config/env');
 const db = require('./db/azureSql');
+const { startRetentionJob } = require('./services/retention');
 
 const server = app.listen(config.port, () => {
   console.log(`Backend 1 beží na http://localhost:${config.port}`);
@@ -10,6 +11,8 @@ const server = app.listen(config.port, () => {
 db.ping()
   .then(() => console.log(`Pripojené na Azure SQL (${config.azureSql.server}/${config.azureSql.database})`))
   .catch((err) => console.error('Azure SQL nedostupná:', err.message));
+
+startRetentionJob(); // GDPR – denné mazanie starých prihlášok
 
 async function shutdown(signal) {
   console.log(`${signal} – vypínam…`);
