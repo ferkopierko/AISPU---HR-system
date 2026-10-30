@@ -12,7 +12,12 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-REQUIRED = ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"]
+DB_PROVIDER = os.getenv("ANALYSIS_DB_PROVIDER", "mysql").strip().lower()
+if DB_PROVIDER not in {"mysql", "firestore"}:
+    raise RuntimeError("ANALYSIS_DB_PROVIDER musí byť mysql alebo firestore")
+
+REQUIRED = (["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"] if DB_PROVIDER == "mysql"
+            else ["FIREBASE_PROJECT_ID"])
 
 missing = [name for name in REQUIRED if not os.getenv(name)]
 if missing:
@@ -21,6 +26,9 @@ if missing:
 
 @dataclass(frozen=True)
 class Settings:
+    db_provider: str
+    firebase_project_id: str
+    firestore_database_id: str
     mysql_host: str
     mysql_port: int
     mysql_database: str
@@ -34,11 +42,14 @@ class Settings:
 
 
 settings = Settings(
-    mysql_host=os.environ["MYSQL_HOST"],
+    db_provider=DB_PROVIDER,
+    firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", ""),
+    firestore_database_id=os.getenv("FIRESTORE_DATABASE_ID") or "(default)",
+    mysql_host=os.getenv("MYSQL_HOST", "localhost"),
     mysql_port=int(os.getenv("MYSQL_PORT") or 3306),
     mysql_database=os.getenv("MYSQL_DATABASE") or "hr_analysis",
-    mysql_user=os.environ["MYSQL_USER"],
-    mysql_password=os.environ["MYSQL_PASSWORD"],
+    mysql_user=os.getenv("MYSQL_USER", ""),
+    mysql_password=os.getenv("MYSQL_PASSWORD", ""),
     port=int(os.getenv("BACKEND2_PORT") or 8000),
     # viac adries sa oddeľuje čiarkou
     cors_origins=[o.strip() for o in (os.getenv("CORS_ORIGIN") or "http://localhost:5173").split(",") if o.strip()],

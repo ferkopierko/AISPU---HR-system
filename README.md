@@ -1,5 +1,9 @@
 # SmartRecruit AI – HR systém
 
+**Firebase pre analýzy CV:** Backend 2 podporuje Cloud Firestore namiesto MySQL.
+Online konfigurácia, migrácia dát a lokálny emulátor sú v [docs/firebase.md](docs/firebase.md).
+Základné Docker spustenie nižšie zachováva pôvodnú MySQL, kým nie je pripojený Firebase projekt.
+
 HR systém pre správu pracovných pozícií a prihlášok s automatickou analýzou CV.
 Uchádzač sa prihlási na pozíciu a nahrá životopis, systém ho pomocou NLP vyhodnotí
 voči požiadavkám pozície a HR manažér vidí všetky prihlášky zoradené podľa zhody.

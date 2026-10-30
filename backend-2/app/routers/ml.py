@@ -9,6 +9,7 @@ from ..config import settings
 from ..nlp.parser import FileParseError, UnsupportedFileError
 from ..nlp.pipeline import analyze_cv
 from ..repository import AnalysisRepository
+from ..storage import get_repository
 from ..schemas import AnalysisResponse, ErrorResponse
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
@@ -17,12 +18,8 @@ MAX_BYTES = settings.max_upload_mb * 1024 * 1024
 ApplicationId = Annotated[int, Path(gt=0, le=2_147_483_647)]
 
 
-def get_repository() -> AnalysisRepository:
-    return AnalysisRepository()
-
-
 # Synchrónne (def) endpointy – FastAPI ich spúšťa v threadpoole, takže
-# CPU-náročné NLP ani blokujúci MySQL ovládač neblokujú event loop.
+# CPU-náročné NLP ani blokujúci databázový ovládač neblokujú event loop.
 
 @router.post(
     "/analyze",
@@ -59,7 +56,11 @@ def analyze(
     except Backend1Error as err:
         raise HTTPException(err.status, err.message) from err
 
-    analyzed_at = repo.save(application_id, result)
+    from ..firestore_repository import AnalysisTooLargeError
+    try:
+        analyzed_at = repo.save(application_id, result)
+    except AnalysisTooLargeError as err:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, str(err)) from err
     return AnalysisResponse(
         application_id=application_id,
         score_percentage=result.score_percentage,

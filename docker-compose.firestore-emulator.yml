@@ -1,0 +1,25 @@
+# Local integration tests only; demo project cannot address a production database.
+# docker compose -f docker-compose.yml -f docker-compose.firestore-emulator.yml up -d --build
+services:
+  mysql:
+    profiles: [legacy-mysql]
+  firestore:
+    build:
+      context: ./database/firestore
+      dockerfile: Dockerfile.emulator
+    ports:
+      - "127.0.0.1:8085:8080"
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://localhost:8080/]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  backend-2:
+    depends_on: !override
+      firestore:
+        condition: service_healthy
+    environment:
+      ANALYSIS_DB_PROVIDER: firestore
+      FIREBASE_PROJECT_ID: demo-smartrecruit
+      FIRESTORE_DATABASE_ID: (default)
+      FIRESTORE_EMULATOR_HOST: firestore:8080

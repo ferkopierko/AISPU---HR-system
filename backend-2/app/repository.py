@@ -2,12 +2,19 @@
 
 import json
 from datetime import datetime
+from typing import Protocol
 
 from . import db
 from .nlp.pipeline import AnalysisResult
 
 
-class AnalysisRepository:
+class AnalysisRepository(Protocol):
+    def save(self, application_id: int, result: AnalysisResult) -> datetime: ...
+    def delete(self, application_ids: list[int]) -> int: ...
+    def get_latest(self, application_id: int) -> dict | None: ...
+
+
+class MySQLAnalysisRepository:
     def save(self, application_id: int, result: AnalysisResult) -> datetime:
         """Uloží analýzu v jednej transakcii.
 

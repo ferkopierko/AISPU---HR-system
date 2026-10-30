@@ -1,0 +1,20 @@
+# Online Firebase. Requires .secrets/firebase-admin.json and FIREBASE_PROJECT_ID in .env.
+# docker compose -f docker-compose.yml -f docker-compose.firestore.yml up -d --build
+services:
+  mysql:
+    profiles: [legacy-mysql]
+  backend-2:
+    depends_on: !override {}
+    environment:
+      ANALYSIS_DB_PROVIDER: firestore
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?Set FIREBASE_PROJECT_ID in .env}
+      FIRESTORE_DATABASE_ID: ${FIRESTORE_DATABASE_ID:-(default)}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-admin.json
+      FIRESTORE_EMULATOR_HOST: ""
+    volumes:
+      - type: bind
+        source: ./.secrets/firebase-admin.json
+        target: /run/secrets/firebase-admin.json
+        read_only: true
+        bind:
+          create_host_path: false

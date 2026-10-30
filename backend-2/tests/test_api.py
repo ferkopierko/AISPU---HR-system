@@ -168,6 +168,16 @@ def test_bad_file_not_sent_to_backend1(client, backend1):
     assert backend1.calls == []
 
 
+def test_firestore_document_limit_returns_413(client, repo, cv_pdf, monkeypatch):
+    from app.firestore_repository import AnalysisTooLargeError
+    def reject(*args):
+        raise AnalysisTooLargeError("Text CV je príliš veľký")
+    monkeypatch.setattr(repo, "save", reject)
+    response = post(client, cv_pdf)
+    assert response.status_code == 413
+    assert "príliš veľký" in response.json()["detail"]
+
+
 KEY = "test-internal-key"
 
 
