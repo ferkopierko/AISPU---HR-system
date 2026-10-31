@@ -26,7 +26,7 @@ export default function Jobs() {
     <>
       <section className="hero">
         <h1>Nájdite si prácu, ktorá vám sedí</h1>
-        <p>Pošlite životopis a hneď uvidíte, nakoľko spĺňate požiadavky pozície.</p>
+        <p>Pošlite životopis. Analýza ukáže, ktoré požiadavky pozície sú v jeho texte doložené.</p>
         <div className="search">
           <input
             type="search" value={query} onChange={(e) => setQuery(e.target.value)}

@@ -2,9 +2,12 @@
 
 import json
 import re
-from dataclasses import dataclass
+import hashlib
+from dataclasses import dataclass, field
 
 from . import contact, extract, matcher, parser, preprocess
+from .providers import AzureCustomNer, local_entities, evidence_context, is_uncertain
+from .azure_llm import AzureLlm
 from .skills import DISPLAY
 
 
@@ -22,7 +25,16 @@ class AnalysisResult:
     missing_skills: list[str]
     text_similarity: float  # 0..100
     skill_coverage: float | None  # 0..100
-    score_percentage: float  # 0..100
+    score_percentage: float | None  # weighted coverage; unavailable without requirements
+    provider: str = "local_rules"
+    model_version: str = "local-rules-v1"
+    scoring_version: str = "weighted-coverage-v1"
+    skill_evidence: list[dict] = field(default_factory=list)
+    uncertain_skills: list[str] = field(default_factory=list)
+    requirements_snapshot: str = ""
+    requirements_sha256: str = ""
+    document_sha256: str = ""
+    analysis_metadata: dict = field(default_factory=dict)
 
 
 def parse_requirements(requirements: str) -> tuple[str, list[str], dict[str, float] | None]:
@@ -106,12 +118,19 @@ def _contains_phrase(text_lower: str, phrase: str) -> bool:
 def analyze_cv(filename: str, data: bytes, requirements: str) -> AnalysisResult:
     kind = parser.detect_type(filename, data)
     raw_text = preprocess.clean_text(parser.extract_text(filename, data))
+    return analyze_text(raw_text, kind, requirements, document_sha256=hashlib.sha256(data).hexdigest())
+
+
+def analyze_text(raw_text: str, kind: str, requirements: str, *, provider: str | None = None,
+                 document_sha256: str = "", azure_client=None) -> AnalysisResult:
+    from ..config import settings
+    selected = provider or settings.ai_provider
     job_text, listed_items, item_weights = parse_requirements(requirements)
 
     cv_doc = preprocess.analyze(raw_text)
     job_doc = preprocess.analyze(job_text)
 
-    cv_skills = extract.extract_skills(cv_doc)
+    rule_skills = extract.extract_skills(cv_doc)
     if item_weights:
         # pri váhach presne zručnosti z poľa (nie ďalšie nájdené v texte – nemali by váhu)
         weights = _weighted_skills(item_weights)
@@ -121,18 +140,39 @@ def analyze_cv(filename: str, data: bytes, requirements: str) -> AnalysisResult:
         required = _required_skills(job_doc, listed_items)
 
     # vlastné (neslovníkové) zručnosti sa v CV hľadajú ako fráza
-    cv_lower = raw_text.lower()
-    found = cv_skills + [s for s in required if s not in cv_skills and _contains_phrase(cv_lower, s)]
-
-    matched, missing, coverage = matcher.skill_match(required, found, weights)
-    similarity = matcher.text_similarity(
-        preprocess.tokens_for_vectorizer(job_doc), preprocess.tokens_for_vectorizer(cv_doc)
-    )
-
+    metadata = {}
+    if selected == "azure_custom_ner":
+        entities, model_version = (azure_client or AzureCustomNer(settings)).extract(raw_text)
+    elif selected == "azure_llm":
+        client = azure_client or AzureLlm(settings)
+        entities, model_version = client.extract(raw_text)
+        metadata = getattr(client, "metadata", {})
+    elif selected == "local_rules":
+        rule_skills += [s for s in required if s not in rule_skills and _contains_phrase(raw_text.lower(), s)]
+        entities, model_version = local_entities(raw_text, rule_skills), "local-rules-v1"
+    else:
+        raise ValueError("Neznámy poskytovateľ AI")
+    cv_skills = sorted({e.skill for e in entities})
+    accepted = {e.skill for e in entities if not is_uncertain(raw_text, e, settings.azure_confidence_threshold)}
+    uncertain = [s for s in required if s in cv_skills and s not in accepted]
+    matched, missing, coverage = matcher.skill_match(required, list(accepted), weights)
+    # v API sa vracajú zobrazované názvy, interne sa porovnávajú kanonické
     names = _display_names(listed_items)
 
     def label(skills: list[str]) -> list[str]:
         return [names.get(s) or DISPLAY.get(s, s) for s in skills]
+
+    evidence = []
+    for skill in required:
+        mentions = [e for e in entities if e.skill == skill]
+        evidence.append({"skill": label([skill])[0], "weight": weights[skill] if weights else 1,
+                         "status": "found" if skill in matched else "uncertain" if skill in uncertain else "missing",
+                         "mentions": [{"text": e.text, "context": evidence_context(raw_text, e), "offset": e.offset,
+                                       "length": e.length, "confidence": e.confidence, "source": e.source,
+                                       "assertion": e.assertion} for e in mentions]})
+    similarity = matcher.text_similarity(
+        preprocess.tokens_for_vectorizer(job_doc), preprocess.tokens_for_vectorizer(cv_doc)
+    )
 
     return AnalysisResult(
         raw_text=raw_text,
@@ -144,8 +184,16 @@ def analyze_cv(filename: str, data: bytes, requirements: str) -> AnalysisResult:
         experience_years=extract.extract_experience_years(raw_text),
         required_skills=label(required),
         matched_skills=label(matched),
-        missing_skills=label(missing),
+        missing_skills=label([s for s in missing if s not in uncertain]),
         text_similarity=round(100 * similarity, 2),
         skill_coverage=None if coverage is None else round(100 * coverage, 2),
-        score_percentage=matcher.final_score(similarity, coverage),
+        score_percentage=None if coverage is None else round(100 * coverage, 2),
+        provider=selected,
+        model_version=model_version,
+        skill_evidence=evidence,
+        uncertain_skills=label(uncertain),
+        requirements_snapshot=requirements,
+        requirements_sha256=hashlib.sha256(requirements.encode()).hexdigest(),
+        document_sha256=document_sha256 or hashlib.sha256(raw_text.encode()).hexdigest(),
+        analysis_metadata=metadata,
     )

@@ -50,6 +50,11 @@ def test_clean_text_removes_contacts_keeps_lines():
     assert text == "A b\n\n2018 - 2021"
 
 
+def test_long_cv_is_rejected_instead_of_silently_truncated():
+    with pytest.raises(preprocess.TextLimitError):
+        preprocess.clean_text('x' * (preprocess.MAX_CHARS + 1))
+
+
 def test_tokens_lemmatized_and_skills_unified():
     tokens = preprocess.tokens_for_vectorizer(doc("Developers building APIs with NodeJS and Node.js"))
     assert "developer" in tokens and "build" in tokens
@@ -150,7 +155,7 @@ def test_full_pipeline(cv_pdf):
     assert r.missing_skills == ["Kubernetes", "AWS"]
     assert r.skill_coverage == 75.0
     assert 0 < r.text_similarity < 100
-    assert r.score_percentage == pytest.approx(0.6 * 75 + 0.4 * r.text_similarity, abs=0.02)
+    assert r.score_percentage == 75  # text similarity is informational, not a scoring input
 
 
 def test_pipeline_custom_skill_from_json(cv_pdf):

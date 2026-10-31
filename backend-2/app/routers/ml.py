@@ -1,89 +1,112 @@
-"""/api/ml – analýza CV a výsledky zhody."""
+"""Authorized CV intake, durable jobs, status and results. No client-supplied requirements."""
 
+import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Path, UploadFile, status
+from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Path, UploadFile
 
+from ..analysis_jobs import JobRepository
 from ..backend1 import SESSION_COOKIE, Backend1Client, Backend1Error, get_backend1
 from ..config import settings
-from ..nlp.parser import FileParseError, UnsupportedFileError
-from ..nlp.pipeline import analyze_cv
+from ..nlp import contact, parser, preprocess
 from ..repository import AnalysisRepository
-from ..schemas import AnalysisResponse, ErrorResponse
+from ..schemas import AnalysisResponse, AnalysisJobResponse
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
-
 MAX_BYTES = settings.max_upload_mb * 1024 * 1024
 ApplicationId = Annotated[int, Path(gt=0, le=2_147_483_647)]
 
 
-def get_repository() -> AnalysisRepository:
+def get_repository():
     return AnalysisRepository()
 
 
-# Synchrónne (def) endpointy – FastAPI ich spúšťa v threadpoole, takže
-# CPU-náročné NLP ani blokujúci MySQL ovládač neblokujú event loop.
+def get_jobs():
+    return JobRepository()
 
-@router.post(
-    "/analyze",
-    response_model=AnalysisResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={code: {"model": ErrorResponse} for code in (401, 403, 404, 413, 415, 422, 502)},
-)
+
+def authorize(backend1, application_id, cookie):
+    try:
+        return backend1.analysis_context(application_id, cookie)
+    except Backend1Error as exc:
+        raise HTTPException(exc.status, exc.message) from exc
+
+
+@router.get("/capabilities")
+def capabilities():
+    return {"provider": settings.ai_provider, "cloud_processing": settings.ai_provider in ("azure_custom_ner", "azure_llm"),
+            "scoring_version": "weighted-coverage-v1", "max_upload_mb": settings.max_upload_mb}
+
+
+@router.post("/analyze", response_model=AnalysisJobResponse, status_code=202)
 def analyze(
-    file: Annotated[UploadFile, File(description="CV vo formáte PDF alebo DOCX")],
-    application_id: Annotated[int, Form(gt=0, le=2_147_483_647, description="applications.id z Azure SQL")],
-    requirements: Annotated[str, Form(min_length=1, max_length=20_000, description="Požiadavky pozície – text alebo JSON pole")],
-    repo: Annotated[AnalysisRepository, Depends(get_repository)],
+    file: Annotated[UploadFile, File()],
+    application_id: Annotated[int, Form(gt=0, le=2_147_483_647)],
+    jobs: Annotated[JobRepository, Depends(get_jobs)],
     backend1: Annotated[Backend1Client, Depends(get_backend1)],
     session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None,
 ):
+    context = authorize(backend1, application_id, session_cookie)
+    existing = jobs.status(application_id)
+    if existing:
+        return existing
     data = file.file.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
-        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, f"Súbor je väčší ako {settings.max_upload_mb} MB")
+        raise HTTPException(413, f"Súbor je väčší ako {settings.max_upload_mb} MB")
     if not data:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Súbor je prázdny")
-
+        raise HTTPException(422, "Súbor je prázdny")
     try:
-        result = analyze_cv(file.filename or "", data, requirements)
-    except UnsupportedFileError as err:
-        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(err)) from err
-    except FileParseError as err:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(err)) from err
-
-    # CV + kontakt do Backendu 1 (Azure SQL). Backend 1 zároveň overí, že prihláška
-    # patrí prihlásenému uchádzačovi – ak nie, analýza sa neuloží.
-    try:
-        backend1.store_cv(application_id, session_cookie, file.filename or f"cv.{result.file_kind}",
-                          result.file_kind, data, result.candidate_name, result.candidate_phone)
-    except Backend1Error as err:
-        raise HTTPException(err.status, err.message) from err
-
-    analyzed_at = repo.save(application_id, result)
-    return AnalysisResponse(
-        application_id=application_id,
-        score_percentage=result.score_percentage,
-        text_similarity=result.text_similarity,
-        skill_coverage=result.skill_coverage,
-        matched_skills=result.matched_skills,
-        missing_skills=result.missing_skills,
-        cv_skills=result.cv_skills,
-        education=result.education,
-        experience_years=result.experience_years,
-        analyzed_at=analyzed_at,
-    )
+        kind = parser.detect_type(file.filename or "", data)
+        raw = preprocess.clean_text(parser.extract_text(file.filename or "", data))
+        doc = preprocess.analyze(raw)
+        backend1.store_cv(application_id, session_cookie, file.filename or f"cv.{kind}", kind, data,
+                          contact.extract_name(doc), contact.extract_phone(raw))
+    except parser.UnsupportedFileError as exc:
+        raise HTTPException(415, str(exc)) from exc
+    except parser.FileParseError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except preprocess.TextLimitError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    except Backend1Error as exc:
+        raise HTTPException(exc.status, exc.message) from exc
+    return jobs.enqueue(application_id, {"raw_text": raw, "kind": kind, "requirements": context["requirements"],
+                                        "document_sha256": hashlib.sha256(data).hexdigest()}, settings.ai_provider)
 
 
-@router.get(
-    "/results/{application_id}",
-    response_model=AnalysisResponse,
-    responses={404: {"model": ErrorResponse}},
-)
-def get_result(
-    application_id: ApplicationId,
-    repo: Annotated[AnalysisRepository, Depends(get_repository)],
-):
+@router.get("/status/{application_id}", response_model=AnalysisJobResponse)
+def get_status(application_id: ApplicationId,
+               jobs: Annotated[JobRepository, Depends(get_jobs)],
+               repo: Annotated[AnalysisRepository, Depends(get_repository)],
+               backend1: Annotated[Backend1Client, Depends(get_backend1)],
+               session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None):
+    authorize(backend1, application_id, session_cookie)
+    row = jobs.status(application_id)
+    if row:
+        return row
+    return {"application_id": application_id, "state": "completed" if repo.get_latest(application_id) else "not_started"}
+
+
+@router.post("/retry/{application_id}", response_model=AnalysisJobResponse, status_code=202)
+def retry(application_id: ApplicationId, jobs: Annotated[JobRepository, Depends(get_jobs)],
+          backend1: Annotated[Backend1Client, Depends(get_backend1)],
+          session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None):
+    authorize(backend1, application_id, session_cookie)
+    row = jobs.status(application_id)
+    if not row:
+        raise HTTPException(404, "Najprv treba nahrať CV k existujúcej prihláške")
+    if row["state"] == "completed":
+        raise HTTPException(409, "Analýza je už dokončená")
+    if row["state"] == "failed":
+        jobs.retry(application_id)
+    return jobs.status(application_id)
+
+
+@router.get("/results/{application_id}", response_model=AnalysisResponse)
+def get_result(application_id: ApplicationId, repo: Annotated[AnalysisRepository, Depends(get_repository)],
+               backend1: Annotated[Backend1Client, Depends(get_backend1)],
+               session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None):
+    authorize(backend1, application_id, session_cookie)
     row = repo.get_latest(application_id)
     if row is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pre túto prihlášku zatiaľ nie je analýza")
+        raise HTTPException(404, "Pre túto prihlášku zatiaľ nie je analýza")
     return row

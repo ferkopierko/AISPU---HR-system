@@ -49,6 +49,7 @@ export const jobs = {
 };
 
 export const applications = {
+  mine: () => request('/api/applications/mine').then((d) => d.applications),
   // consent = súhlas GDPR z formulára, Backend 1 bez neho prihlášku odmietne
   create: (jobId, consent) => request('/api/applications', { method: 'POST', body: { jobId, consent } }).then((d) => d.application),
 };
@@ -64,11 +65,13 @@ export const admin = {
 
 // ---- Backend 2 ----
 export const ml = {
-  analyze: (applicationId, file, requirements) => {
+  capabilities: () => request('/api/ml/capabilities'),
+  status: (applicationId) => request(`/api/ml/status/${applicationId}`),
+  retry: (applicationId) => request(`/api/ml/retry/${applicationId}`, { method: 'POST' }),
+  analyze: (applicationId, file) => {
     const form = new FormData();
     form.append('file', file);
     form.append('application_id', String(applicationId));
-    form.append('requirements', requirements);
     return request('/api/ml/analyze', { method: 'POST', form });
   },
   // null, ak analýza ešte neexistuje

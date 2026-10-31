@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import AuthLayout from '../components/AuthLayout';
 import { IconAlert } from '../components/Icons';
@@ -8,6 +8,7 @@ import { IconAlert } from '../components/Icons';
 export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
@@ -21,7 +22,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(email, password);
-      navigate('/jobs', { replace: true });
+      navigate(location.state?.from?.startsWith('/jobs/') ? location.state.from : '/jobs', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {

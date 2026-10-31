@@ -5,24 +5,24 @@ export default function AuthLayout({ children }) {
       <section className="auth-intro">
         <span className="eyebrow">SmartRecruit</span>
         <h1>
-          Životopis vyhodnotíme <em>hneď</em> po odoslaní
+          Životopis prepojíme s <em>požiadavkami</em> pozície
         </h1>
         <p>
-          Každé CV porovnáme s požiadavkami pozície. Uchádzač vidí výsledok okamžite, HR manažér má všetky prihlášky
-          zoradené podľa zhody.
+          Prihláška sa uloží hneď. Analýza prebehne na pozadí a ukáže textové podklady,
+          ktoré HR pracovník využije pri vlastnom posúdení.
         </p>
         <dl className="auth-facts">
           <div>
-            <dt>60 %</dt>
-            <dd><b>Pokrytie zručností</b>Koľko požadovaných zručností v CV nájdeme.</dd>
+            <dt>01</dt>
+            <dd><b>Vážené požiadavky</b>Skóre vyjadruje podiel doložených zručností podľa ich dôležitosti.</dd>
           </div>
           <div>
-            <dt>40 %</dt>
-            <dd><b>Podobnosť textu</b>Nakoľko sa slová v CV zhodujú s popisom pozície.</dd>
+            <dt>02</dt>
+            <dd><b>Textové podklady</b>Pri náleze sa dá skontrolovať pasáž životopisu a istota extrakcie.</dd>
           </div>
           <div>
-            <dt>+</dt>
-            <dd><b>Prax a vzdelanie</b>Vytiahneme ich z textu, aby ich HR videl na prvý pohľad.</dd>
+            <dt>HR</dt>
+            <dd><b>Osobné posúdenie</b>Skóre pomáha čítať CV. O ďalšom postupe vždy rozhoduje človek.</dd>
           </div>
         </dl>
       </section>

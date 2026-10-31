@@ -308,3 +308,38 @@ label.checkbox input { margin: 3px 0 0; min-height: 0; width: 16px; height: 16px
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* AI provenance and asynchronous processing */
+.ai-notice { font-size: .82rem; line-height: 1.7; padding: .8rem 0; }
+.ai-state-label { display: block; color: var(--muted, #64748b); font-size: .7rem; margin-top: .4rem; }
+.ai-status { display: flex; align-items: center; gap: .6rem; font-size: .9rem; }
+.ai-evidence { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: .83rem; }
+.ai-evidence summary { cursor: pointer; font-weight: 600; }
+.ai-evidence section { border-bottom: 1px solid #e2e8f0; padding: .6rem 0; }
+.ai-evidence h4 { margin-bottom: .5rem; }
+.ai-evidence h4 small { font-weight: 400; }
+.ai-evidence blockquote { margin: .5rem 0; padding: .5rem .9rem; border-left: 2px solid #94a3b8; background: #f8fafc; }
+.ai-evidence blockquote p { margin: 0 0 .4rem; white-space: pre-wrap; }
+.cv-original { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line, #e2e8f0); }
+.cv-original strong { font-size: .95rem; }
+.cv-original p { margin: .35rem 0 0; font-size: .8rem; max-width: 35rem; }
+.cv-original-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+.cv-original-actions .btn { font-size: .8rem; }
+.cv-original-actions button { font-size: .8rem; }
+.cv-dialog { width: min(1000px, 94vw); height: 92vh; max-height: 92vh; max-width: 94vw; padding: 0; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--ink); background: var(--surface, #fff); }
+.cv-dialog[open] { display: flex; flex-direction: column; }
+.cv-dialog::backdrop { background: rgb(17 24 39 / .65); }
+.cv-dialog-head { display: flex; justify-content: space-between; gap: 1rem; padding: 1.1rem 1.3rem; align-items: center; border-bottom: 1px solid var(--line); }
+.cv-dialog-head h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
+.cv-dialog-head p { font-size: .75rem; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.cv-dialog-toolbar { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; padding: .7rem 1.1rem; font-size: .8rem; border-bottom: 1px solid var(--line); }
+.cv-dialog-toolbar button, .cv-dialog-toolbar .btn { font-size: .75rem; min-height: 32px; padding: .4rem .65rem; }
+.cv-dialog-toolbar label { display: flex; align-items: center; gap: .5rem; margin-left: auto; }
+.cv-dialog-toolbar select { width: auto; padding: .35rem .5rem; font-size: .75rem; }
+.cv-dialog-viewport { position: relative; flex: 1; min-height: 0; overflow: auto; background: #dfe3e4; text-align: center; padding: 16px 0; }
+.cv-dialog-viewport canvas { display: block; margin: 0 auto; background: white; }
+.cv-render-status { position: absolute; top: 5px; left: 16px; font-size: .7rem; color: #475569; }
+.cv-docx-note { padding: 2rem; font-size: .9rem; }
+.cv-page-text { padding: .7rem 1.1rem; font-size: .75rem; }
+.cv-page-text summary { cursor: pointer; }
+.cv-page-text pre { max-height: 140px; overflow: auto; white-space: pre-wrap; font: inherit; }
