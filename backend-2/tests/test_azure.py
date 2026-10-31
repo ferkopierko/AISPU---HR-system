@@ -99,7 +99,7 @@ def test_no_rule_fallback_and_weighted_score_from_azure_entities():
         def extract(self,text):return [SkillEntity('sql','SQL',text.index('SQL'),3,.94,'azure_custom_ner')],'test-v1'
     text='Skills: Python, SQL, Docker.'
     outcome=analyze_text(text,'pdf','[{"skill":"Python","weight":5},{"skill":"SQL","weight":3},{"skill":"Docker","weight":2}]',provider='azure_custom_ner',azure_client=FakeAzure())
-    assert outcome.score_percentage==30 and outcome.cv_skills==['sql']
+    assert outcome.score_percentage==30 and outcome.cv_skills==['SQL']
     assert outcome.provider=='azure_custom_ner' and outcome.model_version=='test-v1'
     assert len(outcome.requirements_sha256)==64 and outcome.skill_evidence[1]['mentions'][0]['confidence']==.94
     class BrokenAzure:
@@ -112,8 +112,8 @@ def test_low_confidence_and_negation_are_separate_from_missing():
     class FakeAzure:
         def extract(self,raw):return [SkillEntity('docker','Docker',raw.index('Docker'),6,.99,'azure_custom_ner'),SkillEntity('sql','SQL',raw.index('SQL'),3,.5,'azure_custom_ner')],'test-v1'
     outcome=analyze_text(text,'docx','["Docker","SQL","Python"]',provider='azure_custom_ner',azure_client=FakeAzure())
-    assert outcome.score_percentage==0 and outcome.uncertain_skills==['docker','sql']
-    assert outcome.missing_skills==['python'] and not outcome.matched_skills
+    assert outcome.score_percentage==0 and outcome.uncertain_skills==['Docker','SQL']
+    assert outcome.missing_skills==['Python'] and not outcome.matched_skills
     assert canonical_skill('Postgres')=='postgresql' and canonical_skill('K8s')=='kubernetes'
 
 

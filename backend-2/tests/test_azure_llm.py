@@ -55,8 +55,8 @@ def test_wire_schema_model_evidence_unicode_and_no_made_up_confidence():
 def test_pipeline_does_not_let_model_generate_score_or_count_learning():
     llm,_=client(httpx.Response(200,json=body()))
     outcome=analyze_text(TEXT,'pdf','[{"skill":"Python","weight":5},{"skill":"SQL","weight":3},{"skill":"Docker","weight":2}]',provider='azure_llm',azure_client=llm)
-    assert outcome.score_percentage==50 and outcome.matched_skills==['python']
-    assert set(outcome.uncertain_skills)=={'docker','sql'} and outcome.missing_skills==[]
+    assert outcome.score_percentage==50 and outcome.matched_skills==['Python']
+    assert set(outcome.uncertain_skills)=={'Docker','SQL'} and outcome.missing_skills==[]
     assert outcome.analysis_metadata['usage']['total_tokens']==350
     assert outcome.skill_evidence[2]['mentions'][0]['assertion']=='learning'
 

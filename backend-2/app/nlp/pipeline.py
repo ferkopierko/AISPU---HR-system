@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from . import contact, extract, matcher, parser, preprocess
 from .providers import AzureCustomNer, local_entities, evidence_context, is_uncertain
 from .azure_llm import AzureLlm
+from .skills import DISPLAY
 
 
 @dataclass
@@ -99,6 +100,17 @@ def _weighted_skills(item_weights: dict[str, float]) -> dict[str, float]:
     return weights
 
 
+def _display_names(listed_items: list[str]) -> dict[str, str]:
+    """{kanonická zručnosť: tvar z požiadaviek pozície} – položka, ktorá je presne
+    jedna zručnosť („REST API“, „Postgres“), sa zobrazí tak, ako ju napísal HR."""
+    names: dict[str, str] = {}
+    for item in listed_items:
+        skills = _item_skills(item)
+        if len(skills) == 1:
+            names.setdefault(skills[0], item.strip())
+    return names
+
+
 def _contains_phrase(text_lower: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", text_lower) is not None
 
@@ -144,10 +156,16 @@ def analyze_text(raw_text: str, kind: str, requirements: str, *, provider: str |
     accepted = {e.skill for e in entities if not is_uncertain(raw_text, e, settings.azure_confidence_threshold)}
     uncertain = [s for s in required if s in cv_skills and s not in accepted]
     matched, missing, coverage = matcher.skill_match(required, list(accepted), weights)
+    # v API sa vracajú zobrazované názvy, interne sa porovnávajú kanonické
+    names = _display_names(listed_items)
+
+    def label(skills: list[str]) -> list[str]:
+        return [names.get(s) or DISPLAY.get(s, s) for s in skills]
+
     evidence = []
     for skill in required:
         mentions = [e for e in entities if e.skill == skill]
-        evidence.append({"skill": skill, "weight": weights[skill] if weights else 1,
+        evidence.append({"skill": label([skill])[0], "weight": weights[skill] if weights else 1,
                          "status": "found" if skill in matched else "uncertain" if skill in uncertain else "missing",
                          "mentions": [{"text": e.text, "context": evidence_context(raw_text, e), "offset": e.offset,
                                        "length": e.length, "confidence": e.confidence, "source": e.source,
@@ -161,19 +179,19 @@ def analyze_text(raw_text: str, kind: str, requirements: str, *, provider: str |
         file_kind=kind,
         candidate_name=contact.extract_name(cv_doc),
         candidate_phone=contact.extract_phone(raw_text),
-        cv_skills=cv_skills,
+        cv_skills=label(cv_skills),
         education=extract.extract_education(cv_doc),
         experience_years=extract.extract_experience_years(raw_text),
-        required_skills=required,
-        matched_skills=matched,
-        missing_skills=[s for s in missing if s not in uncertain],
+        required_skills=label(required),
+        matched_skills=label(matched),
+        missing_skills=label([s for s in missing if s not in uncertain]),
         text_similarity=round(100 * similarity, 2),
         skill_coverage=None if coverage is None else round(100 * coverage, 2),
         score_percentage=None if coverage is None else round(100 * coverage, 2),
         provider=selected,
         model_version=model_version,
         skill_evidence=evidence,
-        uncertain_skills=uncertain,
+        uncertain_skills=label(uncertain),
         requirements_snapshot=requirements,
         requirements_sha256=hashlib.sha256(requirements.encode()).hexdigest(),
         document_sha256=document_sha256 or hashlib.sha256(raw_text.encode()).hexdigest(),

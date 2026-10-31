@@ -13,8 +13,8 @@ from fastapi.responses import JSONResponse
 from . import db
 from .config import settings
 from .nlp.preprocess import get_nlp
-from .routers import ml
 from .analysis_jobs import AnalysisWorker
+from .routers import internal, ml
 
 log = logging.getLogger("uvicorn.error")
 
@@ -48,6 +48,7 @@ app.add_middleware(
 )
 
 app.include_router(ml.router)
+app.include_router(internal.router)
 
 
 @app.get("/health", tags=["health"])

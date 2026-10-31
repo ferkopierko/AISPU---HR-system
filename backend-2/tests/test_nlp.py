@@ -135,8 +135,8 @@ def test_pipeline_weighted(cv_pdf):
     # CV má Node.js a Docker, nemá Kubernetes; váhy 50 + 30 = 80 zo 100
     req = '[{"skill":"Node.js","weight":50},{"skill":"Docker","weight":30},{"skill":"Kubernetes","weight":20}]'
     r = pipeline.analyze_cv("cv.pdf", cv_pdf, req)
-    assert r.required_skills == ["node.js", "docker", "kubernetes"]
-    assert r.matched_skills == ["node.js", "docker"] and r.missing_skills == ["kubernetes"]
+    assert r.required_skills == ["Node.js", "Docker", "Kubernetes"]
+    assert r.matched_skills == ["Node.js", "Docker"] and r.missing_skills == ["Kubernetes"]
     assert r.skill_coverage == 80.0
     # rovnaké zručnosti bez váh -> 2/3
     assert pipeline.analyze_cv("cv.pdf", cv_pdf, '["Node.js","Docker","Kubernetes"]').skill_coverage == pytest.approx(66.67)
@@ -151,8 +151,8 @@ def test_pipeline_weighted_multi_skill_item(cv_pdf):
 def test_full_pipeline(cv_pdf):
     req = "3+ years with Node.js, TypeScript, React, Kubernetes, AWS and SQL Server. Docker, CI/CD."
     r = pipeline.analyze_cv("cv.pdf", cv_pdf, req)
-    assert r.matched_skills == ["node.js", "typescript", "react", "sql server", "docker", "ci/cd"]
-    assert r.missing_skills == ["kubernetes", "aws"]
+    assert r.matched_skills == ["Node.js", "TypeScript", "React", "SQL Server", "Docker", "CI/CD"]
+    assert r.missing_skills == ["Kubernetes", "AWS"]
     assert r.skill_coverage == 75.0
     assert 0 < r.text_similarity < 100
     assert r.score_percentage == 75  # text similarity is informational, not a scoring input
@@ -160,5 +160,49 @@ def test_full_pipeline(cv_pdf):
 
 def test_pipeline_custom_skill_from_json(cv_pdf):
     r = pipeline.analyze_cv("cv.pdf", cv_pdf, '["Python", "teamwork", "team leadership"]')
-    assert r.matched_skills == ["python", "teamwork"]
+    assert r.matched_skills == ["Python", "teamwork"]  # tvar z požiadaviek
     assert r.missing_skills == ["team leadership"]
+
+
+def test_display_names_follow_requirements(cv_pdf):
+    # položka poľa sa zobrazí tak, ako ju napísal HR; zručnosti mimo poľa podľa DISPLAY
+    r = pipeline.analyze_cv("cv.pdf", cv_pdf, '["NodeJS", "rest api", "Kubernetes (k8s)"]')
+    assert r.matched_skills == ["NodeJS", "rest api"]
+    assert r.missing_skills == ["Kubernetes (k8s)"]
+    assert "TypeScript" in r.cv_skills and "SQL Server" in r.cv_skills
+    # voľný text -> DISPLAY
+    r = pipeline.analyze_cv("cv.pdf", cv_pdf, "We need node.js and k8s")
+    assert r.matched_skills == ["Node.js"] and r.missing_skills == ["Kubernetes"]
+
+
+def test_every_skill_has_display_name():
+    from app.nlp.skills import DISPLAY, SKILLS
+    assert set(SKILLS) == set(DISPLAY)
+
+
+@pytest.mark.parametrize("text,skill", [
+    ("JS and ES6", "javascript"),
+    ("Postgres 15", "postgresql"),
+    ("psql scripts", "postgresql"),
+    ("Docker Compose", "docker"),
+    ("GitHub Actions pipelines", "ci/cd"),
+    ("Microsoft SQL Server", "sql server"),
+    ("skúsenosti s databázy MySQL", "databases"),
+    ("analýza dát v Pythone", "data analysis"),
+    ("strojové učenie", "machine learning"),
+    ("Objektovo orientované programovanie", "oop"),
+    ("Riadenie projektov a tímová práca", "project management"),
+    ("Riadenie projektov a tímová práca", "teamwork"),
+    ("Komunikačné zručnosti", "communication"),
+    ("podvojné účtovníctvo", "accounting"),
+    ("Anglický jazyk B2", "english"),
+    ("Spring Framework", "spring"),
+    ("Ubuntu server", "linux"),
+])
+def test_synonyms(text, skill):
+    assert skill in extract.extract_skills(doc(text))
+
+
+def test_synonyms_no_false_positives():
+    found = extract.extract_skills(doc("I like testing new recipes and team sports. Our database of clients grew."))
+    assert found == ["databases"]  # „database“ je zámerne synonymum, ostatné nie

@@ -9,8 +9,8 @@ const { requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireRole('admin'));
 
-const ALL_STATUSES = ['submitted', 'reviewing', 'interview', 'accepted', 'rejected'];
-// Stavy, ktoré môže HR nastaviť ('submitted' je iba počiatočný).
+const ALL_STATUSES = ['submitted', 'reviewing', 'interview', 'accepted', 'rejected', 'withdrawn'];
+// Stavy, ktoré môže HR nastaviť ('submitted' je iba počiatočný, 'withdrawn' nastaví iba uchádzač).
 const SETTABLE_STATUSES = ['reviewing', 'interview', 'accepted', 'rejected'];
 
 const toApplication = (r) => ({
@@ -21,6 +21,8 @@ const toApplication = (r) => ({
   candidate: { id: r.user_id, email: r.email, name: r.name, phone: r.phone },
   job: { id: r.job_id, title: r.title, department: r.department },
   hasCv: r.has_cv === 1,
+  // HR má uchádzačovi poslať e-mail o stave pendingStatus (null = nič nečaká)
+  notification: { pendingStatus: r.notify_status, notifiedAt: r.notified_at },
 });
 
 // GET /api/admin/applications?status=&jobId=  – všetci kandidáti
@@ -40,7 +42,7 @@ router.get('/applications', async (req, res) => {
   const { recordset } = await db.query(
     `SELECT a.id, a.status, a.created_at, a.user_id, u.email,
             COALESCE(u.full_name, a.candidate_name) AS name, COALESCE(u.phone, a.candidate_phone) AS phone,
-            a.job_id, j.title, j.department,
+            a.job_id, j.title, j.department, a.notify_status, a.notified_at,
             CASE WHEN EXISTS (SELECT 1 FROM dbo.application_cvs c WHERE c.application_id = a.id)
                  THEN 1 ELSE 0 END AS has_cv
      FROM dbo.applications a
@@ -61,14 +63,41 @@ router.patch('/applications/:id/status', async (req, res) => {
     throw new HttpError(400, `Stav musí byť jeden z: ${SETTABLE_STATUSES.join(', ')}`);
   }
 
+  // Pri skutočnej zmene na pohovor / prijatý / zamietnutý vznikne upozornenie pre HR,
+  // že má uchádzačovi poslať e-mail; pri inej zmene sa staré upozornenie zruší.
   const { recordset } = await db.query(
-    `UPDATE dbo.applications SET status = @status
-     OUTPUT inserted.id, inserted.status
-     WHERE id = @id`,
+    `UPDATE dbo.applications
+     SET notify_status = CASE WHEN status = @status THEN notify_status
+                              WHEN @status IN (N'interview', N'accepted', N'rejected') THEN @status END,
+         status = @status
+     OUTPUT inserted.id, inserted.status, inserted.notify_status AS pendingStatus
+     WHERE id = @id AND status <> N'withdrawn'`,
     { id, status }
   );
-  if (!recordset[0]) throw new HttpError(404, 'Prihláška neexistuje');
-  res.json({ application: recordset[0] });
+  if (!recordset[0]) {
+    const exists = await db.query('SELECT 1 AS x FROM dbo.applications WHERE id = @id', { id });
+    if (exists.recordset[0]) throw new HttpError(409, 'Uchádzač prihlášku stiahol, stav sa už nedá meniť');
+    throw new HttpError(404, 'Prihláška neexistuje');
+  }
+  const { pendingStatus, ...application } = recordset[0];
+  res.json({ application: { ...application, notification: { pendingStatus } } });
+});
+
+// POST /api/admin/applications/:id/notified – HR poslal uchádzačovi e-mail, upozornenie zmizne
+router.post('/applications/:id/notified', async (req, res) => {
+  const id = parseId(req.params.id);
+  const { recordset } = await db.query(
+    `UPDATE dbo.applications SET notify_status = NULL, notified_at = SYSUTCDATETIME()
+     OUTPUT inserted.id, inserted.notified_at AS notifiedAt
+     WHERE id = @id AND notify_status IS NOT NULL`,
+    { id }
+  );
+  if (!recordset[0]) {
+    const exists = await db.query('SELECT 1 AS x FROM dbo.applications WHERE id = @id', { id });
+    if (exists.recordset[0]) throw new HttpError(409, 'K prihláške nečaká žiadny e-mail');
+    throw new HttpError(404, 'Prihláška neexistuje');
+  }
+  res.json({ application: { id, notification: { pendingStatus: null, notifiedAt: recordset[0].notifiedAt } } });
 });
 
 // GET /api/admin/applications/:id/cv[?download=1]

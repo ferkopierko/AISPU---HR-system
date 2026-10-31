@@ -14,8 +14,15 @@ REQ = "Node.js, TypeScript, Kubernetes, Docker"
 
 
 class FakeRepository:
-    def __init__(self): self.rows = {}
+    def __init__(self, jobs=None): self.rows, self.jobs = {}, jobs
     def get_latest(self, application_id): return self.rows.get(application_id)
+    def delete(self, application_ids):
+        job_rows = self.jobs.rows if self.jobs else {}
+        found = {i for i in application_ids if i in self.rows or i in job_rows}
+        for i in found:
+            self.rows.pop(i, None)
+            job_rows.pop(i, None)
+        return len(found)
 
 
 class FakeJobs:
@@ -48,7 +55,8 @@ class FakeBackend1:
 
 @pytest.fixture
 def components():
-    repo,jobs,backend1=FakeRepository(),FakeJobs(),FakeBackend1()
+    jobs=FakeJobs()
+    repo,backend1=FakeRepository(jobs),FakeBackend1()
     app.dependency_overrides[get_repository]=lambda:repo
     app.dependency_overrides[get_jobs]=lambda:jobs
     app.dependency_overrides[get_backend1]=lambda:backend1
@@ -81,7 +89,8 @@ def test_submit_queue_and_get_result(client,components,cv_pdf):
     jobs.finish(repo,7)
     result=client.get('/api/ml/results/7').json()
     assert result['score_percentage']==75 and result['skill_coverage']==75
-    assert result['matched_skills']==['node.js','typescript','docker']
+    assert result['matched_skills']==['Node.js','TypeScript','Docker']
+    assert result['missing_skills']==['Kubernetes']
     assert result['provider']=='local_rules' and result['requirements_snapshot']==REQ
     assert result['document_sha256'] and result['skill_evidence']
     assert client.get('/api/ml/status/7').json()['state']=='completed'
@@ -144,3 +153,41 @@ def test_cors(client):
     assert response.status_code==200 and response.headers['access-control-allow-credentials']=='true'
     response=client.options('/api/ml/analyze',headers={'Origin':'http://evil.example','Access-Control-Request-Method':'POST'})
     assert 'access-control-allow-origin' not in response.headers
+
+
+KEY = "test-internal-key"
+
+
+@pytest.fixture
+def internal_key(monkeypatch):
+    from app.routers import internal
+    monkeypatch.setattr(internal, "settings", type("S", (), {"internal_api_key": KEY})())
+
+
+def test_internal_delete_removes_results_and_queued_jobs(client, components, cv_pdf, internal_key):
+    repo, jobs, _ = components
+    assert post(client, cv_pdf, application_id="7").status_code == 202
+    assert post(client, cv_pdf, application_id="8").status_code == 202
+    jobs.finish(repo, 7)
+    jobs.finish(repo, 8)
+    assert post(client, cv_pdf, application_id="9").status_code == 202  # ešte vo fronte
+    r = client.post("/api/ml/internal/delete", json={"application_ids": [7, 7, 9, 99]}, headers={"X-Internal-Key": KEY})
+    assert r.status_code == 200 and r.json() == {"deleted": 2}
+    assert client.get("/api/ml/results/7").status_code == 404
+    assert client.get("/api/ml/status/9").json()["state"] == "not_started"
+    assert 9 not in jobs.rows
+    assert client.get("/api/ml/results/8").status_code == 200
+
+
+def test_internal_delete_auth_and_validation(client, internal_key):
+    url = "/api/ml/internal/delete"
+    assert client.post(url, json={"application_ids": [1]}).status_code == 403
+    assert client.post(url, json={"application_ids": [1]}, headers={"X-Internal-Key": "zly"}).status_code == 403
+    for body in ({"application_ids": []}, {"application_ids": [0]}, {}):
+        assert client.post(url, json=body, headers={"X-Internal-Key": KEY}).status_code == 422
+
+
+def test_internal_delete_not_configured(client, monkeypatch):
+    from app.routers import internal
+    monkeypatch.setattr(internal, "settings", type("S", (), {"internal_api_key": None})())
+    assert client.post("/api/ml/internal/delete", json={"application_ids": [1]}).status_code == 503

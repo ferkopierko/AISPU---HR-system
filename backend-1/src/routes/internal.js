@@ -60,13 +60,14 @@ router.put('/applications/:id/cv', requireAuth, async (req, res) => {
   if (!CV_TYPES[contentType](file)) throw new HttpError(400, 'Obsah súboru nezodpovedá typu');
 
   const { recordset } = await db.query(
-    'SELECT user_id FROM dbo.applications WHERE id = @id',
+    'SELECT user_id, status FROM dbo.applications WHERE id = @id',
     { id }
   );
   if (!recordset[0]) throw new HttpError(404, 'Prihláška neexistuje');
   if (recordset[0].user_id !== req.session.userId) {
     throw new HttpError(403, 'Prihláška nepatrí prihlásenému používateľovi');
   }
+  if (recordset[0].status === 'withdrawn') throw new HttpError(409, 'Prihláška bola stiahnutá');
 
   // A retry must keep the same CV as the queued text, including concurrent submissions.
   const saved = await db.query(

@@ -62,7 +62,7 @@ BEGIN
         CONSTRAINT FK_applications_users    FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE CASCADE,
         CONSTRAINT FK_applications_jobs     FOREIGN KEY (job_id)  REFERENCES dbo.jobs(id)  ON DELETE CASCADE,
         CONSTRAINT UQ_applications_user_job UNIQUE (user_id, job_id),
-        CONSTRAINT CK_applications_status   CHECK (status IN (N'submitted', N'reviewing', N'interview', N'accepted', N'rejected'))
+        CONSTRAINT CK_applications_status   CHECK (status IN (N'submitted', N'reviewing', N'interview', N'accepted', N'rejected', N'withdrawn'))
     );
 
     CREATE INDEX IX_applications_job_id ON dbo.applications (job_id);
@@ -211,4 +211,31 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_jobs_salary
 
 -- už otvorené pozície dostanú dátum zverejnenia (iba raz, potom už nie sú NULL)
 UPDATE dbo.jobs SET published_at = SYSUTCDATETIME() WHERE status = N'open' AND published_at IS NULL;
+GO
+
+-- =====================================================================
+-- Stiahnutie prihlášky uchádzačom a upozornenie HR na e-mail uchádzačovi
+-- =====================================================================
+
+-- applications.status: pridať 'withdrawn' (prihlášku stiahol uchádzač)
+IF EXISTS (SELECT 1 FROM sys.check_constraints
+           WHERE name = N'CK_applications_status' AND definition NOT LIKE N'%withdrawn%')
+BEGIN
+    ALTER TABLE dbo.applications DROP CONSTRAINT CK_applications_status;
+    ALTER TABLE dbo.applications ADD CONSTRAINT CK_applications_status
+        CHECK (status IN (N'submitted', N'reviewing', N'interview', N'accepted', N'rejected', N'withdrawn'));
+END;
+GO
+
+-- notify_status: stav, o ktorom má HR uchádzačovi poslať e-mail (NULL = nič nečaká)
+-- notified_at:   kedy HR označil e-mail ako odoslaný
+IF COL_LENGTH(N'dbo.applications', N'notify_status') IS NULL
+    ALTER TABLE dbo.applications ADD notify_status NVARCHAR(20) NULL;
+IF COL_LENGTH(N'dbo.applications', N'notified_at') IS NULL
+    ALTER TABLE dbo.applications ADD notified_at DATETIME2(0) NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_applications_notify_status')
+    ALTER TABLE dbo.applications ADD CONSTRAINT CK_applications_notify_status
+        CHECK (notify_status IN (N'interview', N'accepted', N'rejected'));
 GO
