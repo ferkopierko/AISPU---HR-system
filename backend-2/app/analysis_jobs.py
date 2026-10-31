@@ -5,10 +5,11 @@ import logging
 import threading
 import uuid
 
-from . import db
+from . import db, storage
+from .config import settings
 from .nlp.pipeline import analyze_text
 from .nlp.providers import ProviderError
-from .repository import AnalysisRepository, _json
+from .repository import AnalysisTooLargeError, MySQLAnalysisRepository, _json
 
 log = logging.getLogger("uvicorn.error")
 
@@ -59,15 +60,34 @@ class JobRepository:
             conn.commit()
             return row
 
+    def delete(self, application_ids):
+        """Zmaže úlohy (payload obsahuje text CV – GDPR). Vráti ID prihlášok, ktoré úlohu mali."""
+        if not application_ids:
+            return set()
+        marks = ", ".join(["%s"] * len(application_ids))
+        with db.get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT application_id FROM analysis_jobs WHERE application_id IN ({marks}) FOR UPDATE", list(application_ids))
+            found = {row[0] for row in cur.fetchall()}
+            cur.execute(f"DELETE FROM analysis_jobs WHERE application_id IN ({marks})", list(application_ids))
+            conn.commit()
+        return found
+
     def complete(self, job, result):
-        # Save snapshot and final status atomically in the same transaction.
         with db.get_connection() as conn:
             cur = conn.cursor()
             cur.execute("SELECT lock_token FROM analysis_jobs WHERE application_id=%s AND state='processing' FOR UPDATE", (job["application_id"],))
             row = cur.fetchone()
             if not row or row[0] != job["lock_token"]:
                 return False
-            AnalysisRepository().save(job["application_id"], result, connection=conn)
+            if settings.db_provider == "firestore":
+                # Firestore nemôže byť súčasťou MySQL transakcie. Zámok riadku úlohy sa drží počas
+                # zápisu (iný worker ani GDPR mazanie sa nevkliní) a úloha je completed až po
+                # potvrdenom zápise; pri chybe zostane processing a fail() ju označí ako failed.
+                storage.get_repository().save(job["application_id"], result)
+            else:
+                # Snapshot aj stav úlohy atomicky v jednej transakcii.
+                MySQLAnalysisRepository().save(job["application_id"], result, connection=conn)
             cur.execute("UPDATE analysis_jobs SET state='completed', lock_token=NULL, lease_until=NULL, error_message=NULL WHERE application_id=%s", (job["application_id"],))
             conn.commit()
             return True
@@ -88,6 +108,8 @@ def process_one(repository):
         result = analyze_text(**job["payload"], provider=job["provider"])
         repository.complete(job, result)
     except ProviderError as exc:
+        repository.fail(job, str(exc))
+    except AnalysisTooLargeError as exc:
         repository.fail(job, str(exc))
     except Exception:
         # Never log CV text or a remote exception body (may contain credentials/PII).

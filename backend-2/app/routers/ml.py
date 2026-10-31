@@ -11,14 +11,11 @@ from ..config import settings
 from ..nlp import contact, parser, preprocess
 from ..repository import AnalysisRepository
 from ..schemas import AnalysisResponse, AnalysisJobResponse
+from ..storage import get_repository
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
 MAX_BYTES = settings.max_upload_mb * 1024 * 1024
 ApplicationId = Annotated[int, Path(gt=0, le=2_147_483_647)]
-
-
-def get_repository():
-    return AnalysisRepository()
 
 
 def get_jobs():

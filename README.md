@@ -1,5 +1,9 @@
 # SmartRecruit AI – HR systém
 
+**Firebase pre analýzy CV:** Backend 2 podporuje Cloud Firestore namiesto MySQL.
+Online konfigurácia, migrácia dát a lokálny emulátor sú v [docs/firebase.md](docs/firebase.md).
+Základné Docker spustenie nižšie zachováva pôvodnú MySQL, kým nie je pripojený Firebase projekt.
+
 **Azure LLM bez vlastného tréningu:** pripravené je aj pripojenie nasadenia `gpt-4.1-mini` cez Responses API. Pozri [docs/faza-5-azure-llm.md](docs/faza-5-azure-llm.md). Výber je `AI_PROVIDER=azure_llm`; model extrahuje zručnosti a citácie, skóre stále počíta aplikácia.
 
 **Lokálna Azure integrácia:** pozri [návod na Azure Custom NER](docs/faza-4-azure-ner.md).

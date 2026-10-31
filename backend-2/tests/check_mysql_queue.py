@@ -24,7 +24,7 @@ def main():
         from app import db
         from app.analysis_jobs import JobRepository
         from app.nlp.pipeline import analyze_text
-        from app.repository import AnalysisRepository
+        from app.repository import MySQLAnalysisRepository
         db.ensure_schema();db.ensure_schema()  # idempotent additive upgrade, existing score retained
         queue=JobRepository()
         payload={'raw_text':'Skills: Python and SQL','kind':'pdf','requirements':'[{"skill":"Python","weight":5},{"skill":"Docker","weight":5}]'}
@@ -39,16 +39,16 @@ def main():
         assert queue.complete(job,result)
         assert queue.complete(job,result) is False
         assert queue.status(7)['state']=='completed'
-        assert AnalysisRepository().get_latest(7)['score_percentage']==50
-        assert AnalysisRepository().get_latest(999)['score_percentage']==42
+        assert MySQLAnalysisRepository().get_latest(7)['score_percentage']==50
+        assert MySQLAnalysisRepository().get_latest(999)['score_percentage']==42
         assert queue.retry(7) is False
         queue.enqueue(8,payload,'local_rules');failed=queue.claim();queue.fail(failed,'Test failure')
         assert queue.status(8)['state']=='failed' and queue.retry(8)
         resumed=queue.claim();assert resumed['application_id']==8
         queue.complete(resumed,result)
         # Null scores remain unavailable, not zero; snapshot doesn't mix with a newer extraction.
-        AnalysisRepository().save(9,analyze_text('Skills: SQL','pdf','',provider='local_rules'))
-        assert AnalysisRepository().get_latest(9)['score_percentage'] is None
+        MySQLAnalysisRepository().save(9,analyze_text('Skills: SQL','pdf','',provider='local_rules'))
+        assert MySQLAnalysisRepository().get_latest(9)['score_percentage'] is None
         print('PASS: real MySQL migrations, preserved data, concurrent claim, idempotency, retry, immutable snapshots, nullable score')
     finally:
         cur.execute(f'DROP DATABASE IF EXISTS `{name}`')

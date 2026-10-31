@@ -4,5 +4,9 @@ __pycache__/
 .venv/
 node_modules/
 .pytest_cache/
+.secrets/
+firebase-debug.log
+firestore-debug.log
+.firebase/
 sample-data/azure-ner/prepared/
 frontend/dist/

@@ -4,12 +4,23 @@ import json
 from dataclasses import asdict
 from contextlib import nullcontext
 from datetime import datetime
+from typing import Protocol
 
 from . import db
 from .nlp.pipeline import AnalysisResult
 
 
-class AnalysisRepository:
+class AnalysisTooLargeError(ValueError):
+    """Výsledok sa nezmestí do úložiska (limit dokumentu vo Firestore)."""
+
+
+class AnalysisRepository(Protocol):
+    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime: ...
+    def delete(self, application_ids: list[int]) -> int: ...
+    def get_latest(self, application_id: int) -> dict | None: ...
+
+
+class MySQLAnalysisRepository:
     def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime:
         """Uloží analýzu v jednej transakcii.
 

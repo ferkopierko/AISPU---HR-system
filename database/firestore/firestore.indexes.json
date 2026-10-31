@@ -1,0 +1,7 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {"collectionGroup": "cv_analyses", "fieldPath": "*", "indexes": []},
+    {"collectionGroup": "history", "fieldPath": "*", "indexes": []}
+  ]
+}

@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from . import db
+from . import storage
 from .config import settings
 from .nlp.preprocess import get_nlp
 from .analysis_jobs import AnalysisWorker
@@ -23,10 +23,10 @@ log = logging.getLogger("uvicorn.error")
 async def lifespan(app: FastAPI):
     get_nlp()  # načítať spaCy model hneď, nie pri prvej požiadavke
     try:
-        db.ensure_schema()
-        log.info("Pripojené na MySQL (%s:%s/%s)", settings.mysql_host, settings.mysql_port, settings.mysql_database)
+        storage.initialize()
+        log.info("Pripojené na databázu analýz (%s)", settings.db_provider)
     except Exception as err:  # server beží ďalej, /health ukáže výpadok
-        log.error("MySQL nedostupná: %s", err)
+        log.error("Databáza analýz (%s) nedostupná: %s", settings.db_provider, err)
     worker = AnalysisWorker() if settings.analysis_worker_enabled else None
     if worker:
         worker.start()
@@ -54,8 +54,8 @@ app.include_router(internal.router)
 @app.get("/health", tags=["health"])
 def health():
     try:
-        db.ping()
-        return {"status": "ok", "database": "connected"}
+        storage.ping()
+        return {"status": "ok", "database": "connected", "provider": settings.db_provider}
     except Exception as err:
-        log.error("[health] MySQL nedostupná: %s", err)
-        return JSONResponse({"status": "error", "database": "unavailable"}, status_code=503)
+        log.error("[health] Databáza analýz nedostupná: %s", err)
+        return JSONResponse({"status": "error", "database": "unavailable", "provider": settings.db_provider}, status_code=503)
