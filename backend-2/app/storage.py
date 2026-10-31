@@ -12,16 +12,17 @@ def get_repository() -> AnalysisRepository:
 
 
 def initialize() -> None:
-    if settings.db_provider == "mysql":
-        from . import db
-        db.ensure_schema()
-    else:
+    # Fronta analýz (analysis_jobs) je v MySQL v oboch režimoch.
+    from . import db
+    db.ensure_schema()
+    if settings.db_provider == "firestore":
         ping()
 
 
 def ping() -> bool:
+    from . import db
+    db.ping()
     if settings.db_provider == "firestore":
         from . import firestore_db
         return firestore_db.ping()
-    from . import db
-    return db.ping()
+    return True

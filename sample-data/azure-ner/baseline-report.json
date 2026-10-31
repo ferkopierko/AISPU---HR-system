@@ -1,0 +1,12 @@
+{
+  "evaluated_on": "2026-10-27",
+  "provider": "local_rules",
+  "dataset": "synthetic-starter",
+  "scope": "Four short held-out synthetic documents; this does not measure production CV quality or Azure model quality.",
+  "metrics": {
+    "sk": {"documents": 2, "tp": 10, "fp": 1, "fn": 0, "precision": 0.9091, "recall": 1.0, "f1": 0.9524},
+    "en-us": {"documents": 2, "tp": 7, "fp": 0, "fn": 0, "precision": 1.0, "recall": 1.0, "f1": 1.0},
+    "all": {"documents": 4, "tp": 17, "fp": 1, "fn": 0, "precision": 0.9444, "recall": 1.0, "f1": 0.9714}
+  },
+  "azure_evaluation": "Not run: Azure resource and trained deployment do not exist yet."
+}

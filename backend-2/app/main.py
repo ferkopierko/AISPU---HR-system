@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from . import storage
 from .config import settings
 from .nlp.preprocess import get_nlp
+from .analysis_jobs import AnalysisWorker
 from .routers import internal, ml
 
 log = logging.getLogger("uvicorn.error")
@@ -26,7 +27,14 @@ async def lifespan(app: FastAPI):
         log.info("Pripojené na databázu analýz (%s)", settings.db_provider)
     except Exception as err:  # server beží ďalej, /health ukáže výpadok
         log.error("Databáza analýz (%s) nedostupná: %s", settings.db_provider, err)
-    yield
+    worker = AnalysisWorker() if settings.analysis_worker_enabled else None
+    if worker:
+        worker.start()
+    try:
+        yield
+    finally:
+        if worker:
+            worker.stop()
 
 
 app = FastAPI(title="AISPU HR – Backend 2 (ML/NLP)", version="1.0.0", lifespan=lifespan)

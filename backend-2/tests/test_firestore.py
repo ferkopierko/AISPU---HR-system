@@ -51,6 +51,83 @@ def test_empty_emulator_setting_uses_cloud_client(monkeypatch):
         firestore_db.get_client.cache_clear()
 
 
+class Jobs:
+    """MySQL fronta analýz; zaznamenáva GDPR mazanie úloh."""
+    def __init__(self, existing=()):
+        self.existing, self.deleted, self.order = set(existing), [], None
+    def delete(self, application_ids):
+        self.deleted.append(list(application_ids))
+        if self.order is not None:
+            self.order.append("jobs")
+        return self.existing & set(application_ids)
+
+
+class Snapshot:
+    def __init__(self, data):
+        self.data = data
+        self.exists = data is not None
+    def to_dict(self):
+        return dict(self.data)
+
+
+class Reference:
+    """Minimum Firestore API pre get_latest/delete bez emulátora."""
+    def __init__(self, data, order):
+        self.data, self.order = data, order
+    def get(self, **kwargs):
+        return Snapshot(self.data)
+    def collection(self, name):
+        return self
+    def select(self, fields):
+        return self
+    def limit(self, count):
+        return self
+    def stream(self, **kwargs):
+        return []
+    def document(self, name):
+        return self
+    def delete(self, **kwargs):
+        self.order.append("firestore")
+
+
+class Client:
+    def __init__(self, data=None):
+        self.order = []
+        self.ref = Reference(data, self.order)
+    def collection(self, name):
+        return self.ref
+
+
+def test_latest_from_document_without_new_fields_uses_defaults():
+    old = {"application_id": 7, "score_percentage": 46.0, "text_similarity": 40.0, "skill_coverage": 50.0,
+           "matched_skills": ["Python"], "missing_skills": ["Docker"], "cv_skills": ["Python"],
+           "education": {"degrees": [], "institutions": []}, "experience_years": 2.5,
+           "analyzed_at": datetime(2026, 10, 30, tzinfo=timezone.utc)}
+    latest = FirestoreAnalysisRepository(Client(old), jobs=Jobs()).get_latest(7)
+    assert latest["score_percentage"] == 46.0
+    assert latest["provider"] == "legacy_local" and latest["scoring_version"] == "legacy-60-40"
+    assert latest["skill_evidence"] == [] and latest["analysis_metadata"] == {}
+
+
+def test_document_contains_new_analysis_fields(result):
+    document = analysis_document(7, replace(result, provider="azure_llm", uncertain_skills=["Docker"],
+                                            skill_evidence=[{"skill": "Python", "mentions": []}],
+                                            analysis_metadata={"tokens": 10}), datetime.now(timezone.utc))
+    assert document["provider"] == "azure_llm" and document["uncertain_skills"] == ["Docker"]
+    assert document["skill_evidence"][0]["skill"] == "Python" and document["analysis_metadata"] == {"tokens": 10}
+
+
+def test_gdpr_delete_removes_mysql_jobs_before_firestore():
+    client, jobs = Client(None), Jobs(existing={7})
+    jobs.order = client.order
+    repo = FirestoreAnalysisRepository(client, jobs=jobs)
+    # Prihláška 7 má iba úlohu vo fronte (napr. ešte nespracovanú) – aj to sa počíta.
+    assert repo.delete([7]) == 1
+    assert jobs.deleted == [[7]]
+    assert client.order == ["jobs", "firestore"]
+    assert repo.delete([]) == 0 and jobs.deleted == [[7]]
+
+
 @pytest.fixture
 def repo():
     project = os.getenv("FIREBASE_PROJECT_ID", "")
@@ -58,7 +135,7 @@ def repo():
         pytest.skip("Requires FIRESTORE_EMULATOR_HOST and a demo- project; never runs against cloud")
     from google.cloud import firestore
     client = firestore.Client(project=project, database="(default)")
-    repository = FirestoreAnalysisRepository(client)
+    repository = FirestoreAnalysisRepository(client, jobs=Jobs())
     yield repository
     client.close()
 

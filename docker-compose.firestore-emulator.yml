@@ -1,8 +1,7 @@
 # Local integration tests only; demo project cannot address a production database.
 # docker compose -f docker-compose.yml -f docker-compose.firestore-emulator.yml up -d --build
+# MySQL ostáva spustená – je v nej fronta analýz (analysis_jobs).
 services:
-  mysql:
-    profiles: [legacy-mysql]
   firestore:
     build:
       context: ./database/firestore
@@ -15,7 +14,7 @@ services:
       timeout: 3s
       retries: 20
   backend-2:
-    depends_on: !override
+    depends_on:
       firestore:
         condition: service_healthy
     environment:

@@ -52,12 +52,10 @@ prihlasovanie a účty ďalej spravuje Backend 1.
    docker compose -f docker-compose.yml -f docker-compose.firestore.yml up -d --build
    ```
 
-Tento override odstráni závislosť Backendu 2 od MySQL. Existujúce MySQL dáta ani
-volume nezmaže. Ak MySQL kontajner už beží, po overení migrácie ho možno zastaviť:
-
-```powershell
-docker compose stop mysql
-```
+MySQL musí ostať spustená: je v nej fronta analýz (`analysis_jobs`), ktorú používa
+worker aj vo Firestore režime. Do Firestore sa ukladajú iba výsledky analýz; úloha sa
+označí ako dokončená až po potvrdenom zápise do Firestore. GDPR mazanie odstráni
+výsledky vo Firestore aj úlohy vo fronte (ich payload obsahuje text CV).
 
 **Azure pripojenie je samostatné:** základný `docker-compose.yml` stále smeruje
 Backend 1 na lokálny `mssql/hr_main`. Použitie Firestore automaticky neprepája
@@ -124,7 +122,7 @@ pip install -r requirements.txt -r requirements-firestore.txt
 
 Nastavte `ANALYSIS_DB_PROVIDER=firestore`, `FIREBASE_PROJECT_ID` a pre online
 databázu `GOOGLE_APPLICATION_CREDENTIALS` (alebo dostupné ADC). MySQL premenné
-sa v režime Firestore nevyžadujú, okrem jednorazového migračného skriptu.
+sú povinné aj v režime Firestore (fronta analýz).
 
 Referencie: [serverový SDK](https://firebase.google.com/docs/firestore/quickstart-server),
 [limity](https://firebase.google.com/docs/firestore/quotas),

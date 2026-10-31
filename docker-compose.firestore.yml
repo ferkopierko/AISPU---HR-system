@@ -1,10 +1,8 @@
 # Online Firebase. Requires .secrets/firebase-admin.json and FIREBASE_PROJECT_ID in .env.
 # docker compose -f docker-compose.yml -f docker-compose.firestore.yml up -d --build
+# MySQL ostáva spustená – je v nej fronta analýz (analysis_jobs).
 services:
-  mysql:
-    profiles: [legacy-mysql]
   backend-2:
-    depends_on: !override {}
     environment:
       ANALYSIS_DB_PROVIDER: firestore
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?Set FIREBASE_PROJECT_ID in .env}

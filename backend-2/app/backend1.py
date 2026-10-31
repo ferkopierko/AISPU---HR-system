@@ -39,6 +39,28 @@ class Backend1Client:
     def enabled(self) -> bool:
         return self.api_key is not None
 
+    def analysis_context(self, application_id: int, session_cookie: str | None) -> dict:
+        if not self.enabled:
+            raise Backend1Error(503, "Interné overovanie prístupu nie je nakonfigurované")
+        if not session_cookie:
+            raise Backend1Error(401, "Neprihlásený používateľ")
+        try:
+            response = httpx.get(
+                f"{self.base_url}/api/internal/applications/{application_id}/analysis-context",
+                headers={"X-Internal-Key": self.api_key}, cookies={SESSION_COOKIE: session_cookie}, timeout=10,
+                follow_redirects=False,
+            )
+            if response.status_code != 200:
+                code = response.status_code if response.status_code in (401, 403, 404) else 502
+                raise Backend1Error(code, {401: "Neprihlásený používateľ", 403: "K tejto prihláške nemáte prístup",
+                                          404: "Prihláška neexistuje"}.get(code, "Backend 1 je nedostupný"))
+            context = response.json()
+            if context.get("applicationId") != application_id or not isinstance(context.get("requirements"), str):
+                raise ValueError("Invalid application context")
+            return context
+        except (httpx.HTTPError, ValueError, TypeError) as exc:
+            raise Backend1Error(502, "Nepodarilo sa overiť prístup k prihláške") from exc
+
     def store_cv(self, application_id: int, session_cookie: str | None, filename: str, kind: str,
                  data: bytes, candidate_name: str | None, candidate_phone: str | None) -> None:
         if not self.enabled:

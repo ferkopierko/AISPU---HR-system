@@ -1,6 +1,8 @@
 """Mapper medzi tabuľkami cv_analyses / match_scores a objektmi aplikácie."""
 
 import json
+from dataclasses import asdict
+from contextlib import nullcontext
 from datetime import datetime
 from typing import Protocol
 
@@ -8,20 +10,24 @@ from . import db
 from .nlp.pipeline import AnalysisResult
 
 
+class AnalysisTooLargeError(ValueError):
+    """Výsledok sa nezmestí do úložiska (limit dokumentu vo Firestore)."""
+
+
 class AnalysisRepository(Protocol):
-    def save(self, application_id: int, result: AnalysisResult) -> datetime: ...
+    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime: ...
     def delete(self, application_ids: list[int]) -> int: ...
     def get_latest(self, application_id: int) -> dict | None: ...
 
 
 class MySQLAnalysisRepository:
-    def save(self, application_id: int, result: AnalysisResult) -> datetime:
+    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime:
         """Uloží analýzu v jednej transakcii.
 
         cv_analyses má 1 riadok na prihlášku (pri opakovanej analýze sa prepíše),
         match_scores uchováva históriu – každá analýza je nový riadok.
         """
-        with db.get_connection() as conn:
+        with (db.get_connection() if connection is None else nullcontext(connection)) as conn:
             cur = conn.cursor()
             cur.execute(
                 """
@@ -44,8 +50,8 @@ class MySQLAnalysisRepository:
             cur.execute(
                 """
                 INSERT INTO match_scores (application_id, score_percentage, text_similarity, skill_coverage,
-                                          missing_skills_json, matched_skills_json)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                                          missing_skills_json, matched_skills_json, analysis_json)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     application_id,
@@ -54,24 +60,33 @@ class MySQLAnalysisRepository:
                     result.skill_coverage,
                     json.dumps(result.missing_skills),
                     json.dumps(result.matched_skills),
+                    json.dumps({k: v for k, v in asdict(result).items() if k not in ("raw_text", "candidate_name", "candidate_phone")}, ensure_ascii=False),
                 ),
             )
             score_id = cur.lastrowid
             cur.execute("SELECT analyzed_at FROM match_scores WHERE id = %s", (score_id,))
             analyzed_at = cur.fetchone()[0]
-            conn.commit()
+            if connection is None:
+                conn.commit()
             return analyzed_at
 
     def delete(self, application_ids: list[int]) -> int:
-        """Zmaže analýzy (text CV, zručnosti, skóre) prihlášok – GDPR. Vráti počet prihlášok s dátami."""
+        """Zmaže analýzy (text CV, zručnosti, skóre) aj úlohy vo fronte (payload obsahuje text CV)
+        prihlášok – GDPR. Vráti počet prihlášok s dátami."""
         if not application_ids:
             return 0
         marks = ", ".join(["%s"] * len(application_ids))
         with db.get_connection() as conn:
             cur = conn.cursor()
-            cur.execute(f"SELECT COUNT(DISTINCT application_id) FROM match_scores WHERE application_id IN ({marks})",
-                        application_ids)
+            cur.execute(
+                f"""SELECT COUNT(*) FROM (
+                        SELECT application_id FROM match_scores WHERE application_id IN ({marks})
+                        UNION SELECT application_id FROM analysis_jobs WHERE application_id IN ({marks})
+                    ) t""",
+                application_ids + application_ids,
+            )
             found = cur.fetchone()[0]
+            cur.execute(f"DELETE FROM analysis_jobs WHERE application_id IN ({marks})", application_ids)
             cur.execute(f"DELETE FROM match_scores WHERE application_id IN ({marks})", application_ids)
             cur.execute(f"DELETE FROM cv_analyses WHERE application_id IN ({marks})", application_ids)
             conn.commit()
@@ -84,7 +99,7 @@ class MySQLAnalysisRepository:
             cur.execute(
                 """
                 SELECT m.application_id, m.score_percentage, m.text_similarity, m.skill_coverage,
-                       m.matched_skills_json, m.missing_skills_json, m.analyzed_at,
+                       m.matched_skills_json, m.missing_skills_json, m.analyzed_at, m.analysis_json,
                        c.skills_json, c.education_json, c.experience_years
                 FROM match_scores m
                 LEFT JOIN cv_analyses c ON c.application_id = m.application_id
@@ -97,6 +112,9 @@ class MySQLAnalysisRepository:
             row = cur.fetchone()
         if row is None:
             return None
+        snapshot = _json(row.get("analysis_json"), None)
+        if snapshot is not None:
+            return {**snapshot, "application_id": row["application_id"], "analyzed_at": row["analyzed_at"]}
         return {
             "application_id": row["application_id"],
             "score_percentage": _num(row["score_percentage"]),
@@ -108,6 +126,9 @@ class MySQLAnalysisRepository:
             "education": _json(row["education_json"], {"degrees": [], "institutions": []}),
             "experience_years": _num(row["experience_years"]),
             "analyzed_at": row["analyzed_at"],
+            "provider": "legacy_local",
+            "model_version": "legacy-rules",
+            "scoring_version": "legacy-60-40",
         }
 
 

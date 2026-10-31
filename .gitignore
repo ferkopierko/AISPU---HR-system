@@ -8,3 +8,5 @@ node_modules/
 firebase-debug.log
 firestore-debug.log
 .firebase/
+sample-data/azure-ner/prepared/
+frontend/dist/

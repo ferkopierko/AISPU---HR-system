@@ -16,7 +16,11 @@ from spacy.tokens import Doc
 from .skills import CASE_SENSITIVE, DEGREES, SKILLS
 
 MODEL = "en_core_web_sm"
-MAX_CHARS = 100_000  # dlhšie CV sa oreže (ochrana pamäte / času)
+MAX_CHARS = 100_000  # reject longer documents; never silently score a truncated CV
+
+
+class TextLimitError(ValueError):
+    pass
 
 _URL_RE = re.compile(r"https?://\S+|www\.\S+", re.I)
 _EMAIL_RE = re.compile(r"\S+@\S+\.\S+")
@@ -37,7 +41,10 @@ def clean_text(text: str) -> str:
     text = _URL_RE.sub(" ", text)
     text = _EMAIL_RE.sub(" ", text)
     text = "\n".join(_SPACES_RE.sub(" ", line).strip() for line in text.splitlines())
-    return _BLANK_LINES_RE.sub("\n\n", text).strip()[:MAX_CHARS]
+    text = _BLANK_LINES_RE.sub("\n\n", text).strip()
+    if len(text) > MAX_CHARS:
+        raise TextLimitError(f"Text CV presahuje limit {MAX_CHARS} znakov. Dokument nebol skrátený ani vyhodnotený.")
+    return text
 
 
 def _patterns(nlp: Language) -> list[dict]:

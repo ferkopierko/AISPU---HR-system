@@ -63,6 +63,7 @@ _MIGRATIONS = [
     ("cv_analyses", "education_json", "ALTER TABLE cv_analyses ADD COLUMN education_json JSON NULL AFTER skills_json"),
     ("match_scores", "text_similarity", "ALTER TABLE match_scores ADD COLUMN text_similarity DECIMAL(5,2) NULL AFTER score_percentage"),
     ("match_scores", "skill_coverage", "ALTER TABLE match_scores ADD COLUMN skill_coverage DECIMAL(5,2) NULL AFTER text_similarity"),
+    ("match_scores", "analysis_json", "ALTER TABLE match_scores ADD COLUMN analysis_json JSON NULL"),
 ]
 
 
@@ -77,6 +78,24 @@ def ensure_schema() -> None:
             )
             if cur.fetchone()[0] == 0:
                 cur.execute(ddl)
+        cur.execute("SELECT IS_NULLABLE FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='match_scores' AND column_name='score_percentage'")
+        if cur.fetchone()[0] == "NO":
+            cur.execute("ALTER TABLE match_scores MODIFY COLUMN score_percentage DECIMAL(5,2) NULL")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_jobs (
+              application_id INT UNSIGNED PRIMARY KEY,
+              state VARCHAR(20) NOT NULL,
+              payload_json JSON NOT NULL,
+              provider VARCHAR(40) NOT NULL,
+              attempts INT NOT NULL DEFAULT 0,
+              lock_token VARCHAR(36) NULL,
+              lease_until DATETIME NULL,
+              error_message VARCHAR(500) NULL,
+              created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+              INDEX ix_analysis_jobs_claim (state, lease_until, created_at)
+            ) ENGINE=InnoDB
+        """)
         conn.commit()
 
 
