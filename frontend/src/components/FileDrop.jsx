@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { IconFile, IconUpload } from './Icons';
 
 /** Nahranie súboru kliknutím alebo potiahnutím. */
 export default function FileDrop({ file, onChange, accept = '.pdf,.docx' }) {
@@ -18,7 +19,7 @@ export default function FileDrop({ file, onChange, accept = '.pdf,.docx' }) {
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); pick(e.dataTransfer.files); }}
     >
-      <div className="icon">{file ? '📄' : '⬆️'}</div>
+      <div className="icon">{file ? <IconFile size={22} /> : <IconUpload size={22} />}</div>
       {file ? (
         <>
           <strong>{file.name}</strong>
