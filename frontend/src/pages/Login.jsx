@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import AuthLayout from '../components/AuthLayout';
 import { IconAlert } from '../components/Icons';
+import { homePath } from '../components/RequireRole';
 
 export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const { user, login } = useAuth();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Prihlásený (aj hneď po prihlásení) ide tam, odkiaľ prišiel, inak uchádzač na /jobs a HR na /admin.
+  if (user) return <Navigate to={homePath(user, location.state?.from)} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -19,10 +22,8 @@ export default function Login() {
     setBusy(true);
     try {
       await login(email, password);
-      navigate(location.state?.from || '/jobs', { replace: true });
     } catch (err) {
       setError(err.message);
-    } finally {
       setBusy(false);
     }
   }
@@ -51,7 +52,7 @@ export default function Login() {
         {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
         <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{busy ? 'Prihlasujem…' : 'Prihlásiť sa'}</button>
         <p className="auth-switch">
-          Ešte nemáte účet? <Link to="/register">Zaregistrujte sa</Link>
+          Ešte nemáte účet? <Link to="/register" state={location.state}>Zaregistrujte sa</Link>
         </p>
       </form>
     </AuthLayout>
