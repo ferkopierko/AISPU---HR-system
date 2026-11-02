@@ -59,6 +59,8 @@ export const applications = {
   create: (jobId, consent) => request('/api/applications', { method: 'POST', body: { jobId, consent } }).then((d) => d.application),
   // stav -> withdrawn, Backend 1 zmaže CV a kontakt, Backend 2 analýzu; znova sa prihlásiť nedá
   withdraw: (id) => request(`/api/applications/${id}/withdraw`, { method: 'POST' }).then((d) => d.application),
+  // história stavu vlastnej prihlášky, najstaršie prvé (bez údaja, ktorý HR stav zmenil)
+  history: (id) => request(`/api/applications/${id}/history`).then((d) => d.history),
 };
 
 export const admin = {
@@ -70,6 +72,8 @@ export const admin = {
     request(`/api/admin/applications/${id}/status`, { method: 'PATCH', body: { status } }).then((d) => d.application),
   // CV sa otvára priamo odkazom (náhľad v novej karte / stiahnutie), session cookie ide automaticky
   cvUrl: (id, { download = false } = {}) => `/api/admin/applications/${id}/cv${download ? '?download=1' : ''}`,
+  // história stavu, najstaršie prvé; changedBy = HR, null pri krokoch uchádzača
+  history: (id) => request(`/api/admin/applications/${id}/history`).then((d) => d.history),
   notes: (id) => request(`/api/admin/applications/${id}/notes`).then((d) => d.notes),
   addNote: (id, text) => request(`/api/admin/applications/${id}/notes`, { method: 'POST', body: { text } }).then((d) => d.note),
 

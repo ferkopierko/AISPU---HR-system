@@ -65,14 +65,22 @@ router.patch('/applications/:id/status', async (req, res) => {
 
   // Pri skutočnej zmene na pohovor / prijatý / zamietnutý vznikne upozornenie pre HR,
   // že má uchádzačovi poslať e-mail; pri inej zmene sa staré upozornenie zruší.
+  // Skutočná zmena sa zapíše aj do histórie stavu spolu s HR, ktorý ju urobil.
   const { recordset } = await db.query(
-    `UPDATE dbo.applications
+    `SET XACT_ABORT ON;
+     DECLARE @changed TABLE (id INT, old_status NVARCHAR(20), status NVARCHAR(20), pendingStatus NVARCHAR(20));
+     BEGIN TRANSACTION;
+     UPDATE dbo.applications
      SET notify_status = CASE WHEN status = @status THEN notify_status
                               WHEN @status IN (N'interview', N'accepted', N'rejected') THEN @status END,
          status = @status
-     OUTPUT inserted.id, inserted.status, inserted.notify_status AS pendingStatus
-     WHERE id = @id AND status <> N'withdrawn'`,
-    { id, status }
+     OUTPUT inserted.id, deleted.status, inserted.status, inserted.notify_status INTO @changed
+     WHERE id = @id AND status <> N'withdrawn';
+     INSERT INTO dbo.application_status_history (application_id, status, changed_by)
+     SELECT id, status, @adminId FROM @changed WHERE old_status <> status;
+     COMMIT;
+     SELECT id, status, pendingStatus FROM @changed;`,
+    { id, status, adminId: req.session.userId }
   );
   if (!recordset[0]) {
     const exists = await db.query('SELECT 1 AS x FROM dbo.applications WHERE id = @id', { id });
@@ -119,6 +127,32 @@ router.get('/applications/:id/cv', async (req, res) => {
     'Cache-Control': 'private, no-store', // osobné údaje
   });
   res.send(cv.data);
+});
+
+// GET /api/admin/applications/:id/history – história stavu, najstaršie prvé.
+// changedBy = HR, ktorý stav zmenil; null pri krokoch uchádzača (podanie, stiahnutie).
+// changedAt je null pri stave prihlášky spred zavedenia histórie (čas zmeny nie je známy).
+router.get('/applications/:id/history', async (req, res) => {
+  const id = parseId(req.params.id);
+  const app = await db.query('SELECT id FROM dbo.applications WHERE id = @id', { id });
+  if (!app.recordset[0]) throw new HttpError(404, 'Prihláška neexistuje');
+
+  const { recordset } = await db.query(
+    `SELECT h.id, h.status, h.changed_at, h.changed_by, u.email
+     FROM dbo.application_status_history h
+     LEFT JOIN dbo.users u ON u.id = h.changed_by
+     WHERE h.application_id = @id
+     ORDER BY h.id`,
+    { id }
+  );
+  res.json({
+    history: recordset.map((h) => ({
+      id: h.id,
+      status: h.status,
+      changedAt: h.changed_at,
+      changedBy: h.changed_by == null ? null : { id: h.changed_by, email: h.email },
+    })),
+  });
 });
 
 // GET /api/admin/applications/:id/notes – poznámky HR, najstaršie prvé

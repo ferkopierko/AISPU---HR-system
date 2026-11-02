@@ -9,6 +9,7 @@ import { initials } from '../components/Layout';
 import ListSkeleton from '../components/ListSkeleton';
 import NotesPanel from '../components/NotesPanel';
 import ScoreBadge from '../components/ScoreBadge';
+import StatusHistory from '../components/StatusHistory';
 import StatusPill from '../components/StatusPill';
 import { formatDate, STATUS_LABELS } from '../labels';
 const OriginalCvDialog = lazy(() => import('../components/OriginalCvDialog'));
@@ -238,6 +239,8 @@ export default function AdminApplications() {
                                   <p className="muted">K prihláške zatiaľ nie je uložené CV.</p>
                                 )}
                               </section>
+                              {/* key = stav: po zmene stavu sa história načíta znova */}
+                              <StatusHistory key={r.status} applicationId={r.id} load={admin.history} />
                               <NotesPanel applicationId={r.id} />
                             </div>
                             <section className="app-analysis" aria-label="Výsledok analýzy">

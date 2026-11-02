@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { applications, ml } from '../api';
 import Department from '../components/Department';
 import ListSkeleton from '../components/ListSkeleton';
-import { IconAlert, IconArrowRight, IconCheck, IconInbox } from '../components/Icons';
+import { IconAlert, IconArrowRight, IconCheck, IconChevronDown, IconInbox } from '../components/Icons';
 import ScoreBadge from '../components/ScoreBadge';
+import StatusHistory from '../components/StatusHistory';
 import StatusPill from '../components/StatusPill';
 import { formatDate } from '../labels';
 
@@ -19,6 +20,7 @@ export default function MyApplications() {
   const [confirmId, setConfirmId] = useState(null); // prihláška, pri ktorej sa pýtame na potvrdenie
   const [busyId, setBusyId] = useState(null);
   const [rowError, setRowError] = useState(null); // { id, message }
+  const [historyId, setHistoryId] = useState(null); // prihláška s rozbalenou históriou stavu
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +96,13 @@ export default function MyApplications() {
                 <div className="my-status">
                   <span className="row-label">Stav</span>
                   <StatusPill status={a.status} />
+                  <button
+                    type="button" className="link-button history-toggle" aria-expanded={historyId === a.id} aria-controls={`history-${a.id}`}
+                    onClick={() => setHistoryId(historyId === a.id ? null : a.id)}
+                  >
+                    História<span className="visually-hidden"> stavu prihlášky na pozíciu {a.job.title}</span>
+                    <IconChevronDown size={14} className="chevron" />
+                  </button>
                 </div>
                 <div className="my-actions">
                   {canWithdraw(a) && confirmId !== a.id && (
@@ -108,6 +117,12 @@ export default function MyApplications() {
                     </Link>
                   )}
                 </div>
+                {historyId === a.id && (
+                  <div className="my-history" id={`history-${a.id}`}>
+                    {/* key = stav: po stiahnutí sa história načíta znova */}
+                    <StatusHistory key={a.status} applicationId={a.id} load={applications.history} />
+                  </div>
+                )}
                 {confirmId === a.id && (
                   <div className="withdraw-confirm" role="group" aria-labelledby={`withdraw-${a.id}`}>
                     <p id={`withdraw-${a.id}`}>

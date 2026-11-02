@@ -50,11 +50,17 @@ router.post('/', requireAuth, async (req, res) => {
   if (!job.recordset[0]) throw new HttpError(404, 'Pozícia neexistuje, je uzavretá alebo jej prešla uzávierka');
 
   try {
+    // prihláška a prvý záznam histórie stavu (submitted) naraz
     const { recordset } = await db.query(
-      `INSERT INTO dbo.applications (user_id, job_id, consent_at)
+      `SET XACT_ABORT ON;
+       BEGIN TRANSACTION;
+       INSERT INTO dbo.applications (user_id, job_id, consent_at)
        OUTPUT inserted.id, inserted.job_id AS jobId, inserted.status, inserted.created_at AS createdAt,
               inserted.consent_at AS consentAt
-       VALUES (@userId, @jobId, SYSUTCDATETIME())`,
+       VALUES (@userId, @jobId, SYSUTCDATETIME());
+       INSERT INTO dbo.application_status_history (application_id, status, changed_at)
+       SELECT id, status, created_at FROM dbo.applications WHERE id = SCOPE_IDENTITY();
+       COMMIT;`,
       { userId, jobId }
     );
     res.status(201).json({ application: recordset[0] });
@@ -88,14 +94,37 @@ router.post('/:id/withdraw', requireAuth, async (req, res) => {
   }
 
   const { recordset: updated } = await db.query(
-    `DELETE FROM dbo.application_cvs WHERE application_id = @id;
+    `SET XACT_ABORT ON;
+     BEGIN TRANSACTION;
+     DELETE FROM dbo.application_cvs WHERE application_id = @id;
      UPDATE dbo.applications
      SET status = N'withdrawn', candidate_name = NULL, candidate_phone = NULL, notify_status = NULL
      OUTPUT inserted.id, inserted.status
-     WHERE id = @id`,
+     WHERE id = @id;
+     INSERT INTO dbo.application_status_history (application_id, status) VALUES (@id, N'withdrawn');
+     COMMIT;`,
     { id }
   );
   res.json({ application: updated[0] });
+});
+
+// GET /api/applications/:id/history – história stavu vlastnej prihlášky, najstaršie prvé.
+// Uchádzač nevidí, ktorý HR stav zmenil.
+router.get('/:id/history', requireAuth, async (req, res) => {
+  const id = parseId(req.params.id);
+  const app = await db.query(
+    'SELECT id FROM dbo.applications WHERE id = @id AND user_id = @userId',
+    { id, userId: req.session.userId }
+  );
+  if (!app.recordset[0]) throw new HttpError(404, 'Prihláška neexistuje');
+
+  const { recordset } = await db.query(
+    `SELECT status, changed_at FROM dbo.application_status_history
+     WHERE application_id = @id
+     ORDER BY id`,
+    { id }
+  );
+  res.json({ history: recordset.map((h) => ({ status: h.status, changedAt: h.changed_at })) });
 });
 
 module.exports = router;

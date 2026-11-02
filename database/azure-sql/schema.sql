@@ -239,3 +239,38 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_application
     ALTER TABLE dbo.applications ADD CONSTRAINT CK_applications_notify_status
         CHECK (notify_status IN (N'interview', N'accepted', N'rejected'));
 GO
+
+-- =====================================================================
+-- application_status_history – história zmien stavu prihlášky
+-- Riadok vzniká pri podaní (submitted), pri každej skutočnej zmene stavu HR
+-- a pri stiahnutí (withdrawn). changed_by = HR, ktorý stav zmenil; pri krokoch
+-- uchádzača (podanie, stiahnutie) je NULL. changed_by je bez ON DELETE CASCADE
+-- z rovnakého dôvodu ako application_notes.author_id (dve kaskádové cesty z users).
+-- =====================================================================
+IF OBJECT_ID(N'dbo.application_status_history', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.application_status_history (
+        id             INT IDENTITY(1,1) NOT NULL,
+        application_id INT               NOT NULL,
+        status         NVARCHAR(20)      NOT NULL,
+        changed_by     INT               NULL,
+        changed_at     DATETIME2(0)      NULL CONSTRAINT DF_application_status_history_changed_at DEFAULT SYSUTCDATETIME(),
+
+        CONSTRAINT PK_application_status_history              PRIMARY KEY (id),
+        CONSTRAINT FK_application_status_history_applications FOREIGN KEY (application_id)
+            REFERENCES dbo.applications(id) ON DELETE CASCADE,
+        CONSTRAINT FK_application_status_history_users        FOREIGN KEY (changed_by) REFERENCES dbo.users(id),
+        CONSTRAINT CK_application_status_history_status       CHECK (status IN
+            (N'submitted', N'reviewing', N'interview', N'accepted', N'rejected', N'withdrawn'))
+    );
+
+    CREATE INDEX IX_application_status_history_application_id ON dbo.application_status_history (application_id);
+
+    -- Prihlášky spred histórie: podanie s časom created_at a aktuálny stav
+    -- s neznámym časom (changed_at NULL), ak sa od podania zmenil.
+    INSERT INTO dbo.application_status_history (application_id, status, changed_at)
+    SELECT id, N'submitted', created_at FROM dbo.applications;
+    INSERT INTO dbo.application_status_history (application_id, status, changed_at)
+    SELECT id, status, NULL FROM dbo.applications WHERE status <> N'submitted';
+END;
+GO

@@ -28,6 +28,8 @@ v Azure SQL Database z [fázy 1](faza-1-databazy.md).
   - [x] CV na stiahnutie / náhľad – `GET /api/admin/applications/:id/cv`
   - [x] Meno a telefón z CV v zozname prihlášok
   - [x] Poznámky HR – `GET`, `POST /api/admin/applications/:id/notes`
+- [x] **História zmien stavu (2026-11-02)**
+  - [x] `GET /api/admin/applications/:id/history` (HR), `GET /api/applications/:id/history` (uchádzač)
 
 ---
 
@@ -535,3 +537,38 @@ opakovane `409`), stiahnutie (cudzí `404`, anonym `401`; CV, kontakt z CV a ana
 upozornenie zrušené; potom `409` pre stav, CV aj novú prihlášku; zamietnutú nejde), GDPR mazanie
 (Backend 2 vypnutý → nič; 7-mesačná zmazaná vrátane CV, poznámok a MySQL, 5-mesačná ostala, účet
 ostal). Backend 2 pytest 54/54. Testovacie dáta boli zmazané.
+
+---
+
+## História zmien stavu (2026-11-02)
+
+Každá zmena stavu prihlášky sa zapíše do `application_status_history`: podanie (`submitted`),
+každá skutočná zmena od HR (rovnaký stav znova sa nezapíše) a stiahnutie (`withdrawn`).
+Zmena stavu a zápis do histórie bežia v jednej transakcii.
+
+| Metóda | Cesta | Prístup | Odpoveď |
+|--------|-------|---------|---------|
+| GET | `/api/admin/applications/:id/history` | `admin` | `200 { history: [{ id, status, changedAt, changedBy: { id, email } \| null }] }` · `404` |
+| GET | `/api/applications/:id/history` | vlastník prihlášky | `200 { history: [{ status, changedAt }] }` · `404` cudzia / neexistuje · `401` |
+
+- Poradie: najstaršie prvé.
+- `changedBy` je HR, ktorý stav zmenil; `null` pri krokoch uchádzača (podanie, stiahnutie).
+  Uchádzač nevidí, kto stav zmenil.
+- `changedAt` je `null` iba pri prihláškach spred zavedenia histórie: migrácia im doplní
+  `submitted` s časom podania a aktuálny stav (ak sa líši) s neznámym časom.
+
+### Schéma
+
+| Tabuľka | Stĺpce |
+|---------|--------|
+| `application_status_history` | `id`, `application_id` (FK cascade), `status` (CHECK), `changed_by` (FK users, NULL), `changed_at` |
+
+`changed_by` nemá `ON DELETE CASCADE` z rovnakého dôvodu ako `application_notes.author_id`.
+Pri GDPR mazaní prihlášky sa história zmaže kaskádou.
+
+Vo frontende: časová os v detaile prihlášky pre HR a tlačidlo „História“ v Moje prihlášky.
+
+**Test** (lokálny Docker): podanie → `submitted`; `reviewing` dvakrát → jeden záznam s HR;
+`interview`; stiahnutie → `withdrawn` a potom `409` pre zmenu stavu; uchádzač vidí históriu
+bez HR, iný používateľ `404`, anonym `401`, uchádzač na admin ceste `403`; existujúca prihláška
+dostala spätne `submitted`; zmazanie účtu zmaže aj históriu. Testovacie dáta boli zmazané.
