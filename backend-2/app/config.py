@@ -16,11 +16,11 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 DB_PROVIDER = os.getenv("ANALYSIS_DB_PROVIDER", "mysql").strip().lower()
-if DB_PROVIDER not in {"mysql", "firestore"}:
-    raise RuntimeError("ANALYSIS_DB_PROVIDER musí byť mysql alebo firestore")
+if DB_PROVIDER not in {"mysql", "firestore", "sqlconnect"}:
+    raise RuntimeError("ANALYSIS_DB_PROVIDER musí byť mysql, firestore alebo sqlconnect")
 
 # MySQL je povinná vždy – aj vo firestore režime v nej beží fronta analýz (analysis_jobs).
-REQUIRED = ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"] + (["FIREBASE_PROJECT_ID"] if DB_PROVIDER == "firestore" else [])
+REQUIRED = ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"] + (["FIREBASE_PROJECT_ID"] if DB_PROVIDER in {"firestore", "sqlconnect"} else [])
 
 missing = [name for name in REQUIRED if not os.getenv(name)]
 if missing:
@@ -60,6 +60,10 @@ class Settings:
     azure_llm_timeout_seconds: float = 60
     azure_llm_max_characters: int = 30_000
     azure_llm_max_output_tokens: int = 6000
+    dataconnect_location: str = "europe-central2"
+    dataconnect_service_id: str = "smartrecruit-ai-3af8b-service"
+    dataconnect_connector_id: str = "hr-analysis"
+    dataconnect_emulator_host: str = ""
 
 
 settings = Settings(
@@ -91,6 +95,10 @@ settings = Settings(
     azure_timeout_seconds=float(os.getenv("AZURE_NER_TIMEOUT_SECONDS", "90")),
     azure_max_characters=int(os.getenv("AZURE_NER_MAX_CHARACTERS", "100000")),
     analysis_worker_enabled=os.getenv("ANALYSIS_WORKER_ENABLED", "true").lower() == "true",
+    dataconnect_location=os.getenv("DATACONNECT_LOCATION") or "europe-central2",
+    dataconnect_service_id=os.getenv("DATACONNECT_SERVICE_ID") or "smartrecruit-ai-3af8b-service",
+    dataconnect_connector_id=os.getenv("DATACONNECT_CONNECTOR_ID") or "hr-analysis",
+    dataconnect_emulator_host=os.getenv("DATA_CONNECT_EMULATOR_HOST", "").strip(),
     azure_openai_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", "").strip(),
     azure_openai_api_key=os.getenv("AZURE_OPENAI_API_KEY", ""),
     azure_openai_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", "").strip(),

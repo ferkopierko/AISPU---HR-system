@@ -1,0 +1,12 @@
+specVersion: v1
+serviceId: smartrecruit-ai-3af8b-service
+location: europe-central2
+schema:
+  source: ./schema
+  datasource:
+    postgresql:
+      schemaValidation: COMPATIBLE
+      database: smartrecruit-ai-3af8b-database
+      cloudSql:
+        instanceId: smartrecruit-ai-3af8b-instance
+connectorDirs: [./hr-analysis]

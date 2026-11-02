@@ -80,8 +80,8 @@ class JobRepository:
             row = cur.fetchone()
             if not row or row[0] != job["lock_token"]:
                 return False
-            if settings.db_provider == "firestore":
-                # Firestore nemôže byť súčasťou MySQL transakcie. Zámok riadku úlohy sa drží počas
+            if settings.db_provider in {"firestore", "sqlconnect"}:
+                # Vzdialené úložisko nemôže byť súčasťou MySQL transakcie. Zámok riadku úlohy sa drží počas
                 # zápisu (iný worker ani GDPR mazanie sa nevkliní) a úloha je completed až po
                 # potvrdenom zápise; pri chybe zostane processing a fail() ju označí ako failed.
                 storage.get_repository().save(job["application_id"], result)

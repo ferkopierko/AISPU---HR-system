@@ -1,0 +1,18 @@
+# Firebase SQL Connect (PostgreSQL); MySQL still holds the durable work queue.
+services:
+  backend-2:
+    environment:
+      ANALYSIS_DB_PROVIDER: sqlconnect
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:?Set FIREBASE_PROJECT_ID}
+      DATACONNECT_LOCATION: ${DATACONNECT_LOCATION:-europe-central2}
+      DATACONNECT_SERVICE_ID: ${DATACONNECT_SERVICE_ID:-smartrecruit-ai-3af8b-service}
+      DATACONNECT_CONNECTOR_ID: ${DATACONNECT_CONNECTOR_ID:-hr-analysis}
+      DATA_CONNECT_EMULATOR_HOST: ""
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-admin.json
+    volumes:
+      - type: bind
+        source: ./.secrets/firebase-admin.json
+        target: /run/secrets/firebase-admin.json
+        read_only: true
+        bind:
+          create_host_path: false
