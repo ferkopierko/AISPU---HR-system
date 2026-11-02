@@ -5,6 +5,9 @@ from .repository import AnalysisRepository, MySQLAnalysisRepository
 
 
 def get_repository() -> AnalysisRepository:
+    if settings.db_provider == "sqlconnect":
+        from .sqlconnect_repository import SQLConnectAnalysisRepository
+        return SQLConnectAnalysisRepository()
     if settings.db_provider == "firestore":
         from .firestore_repository import FirestoreAnalysisRepository
         return FirestoreAnalysisRepository()
@@ -12,16 +15,19 @@ def get_repository() -> AnalysisRepository:
 
 
 def initialize() -> None:
-    # Fronta analýz (analysis_jobs) je v MySQL v oboch režimoch.
+    # Fronta analýz (analysis_jobs) je v MySQL vo všetkých režimoch.
     from . import db
     db.ensure_schema()
-    if settings.db_provider == "firestore":
+    if settings.db_provider in {"firestore", "sqlconnect"}:
         ping()
 
 
 def ping() -> bool:
     from . import db
     db.ping()
+    if settings.db_provider == "sqlconnect":
+        from . import sqlconnect_client
+        return sqlconnect_client.ping()
     if settings.db_provider == "firestore":
         from . import firestore_db
         return firestore_db.ping()

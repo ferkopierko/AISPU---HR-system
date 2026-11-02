@@ -10,3 +10,6 @@ firestore-debug.log
 .firebase/
 sample-data/azure-ner/prepared/
 frontend/dist/
+.dataconnect/
+dataconnect-debug.log
+pglite-debug.log

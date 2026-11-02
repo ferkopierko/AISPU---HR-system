@@ -1,0 +1,30 @@
+mutation SaveAnalysis(
+  $applicationId: Int!, $runId: String!, $rawText: String!, $score: Float,
+  $provider: String!, $model: String!, $scoring: String!,
+  $analyzedAt: Timestamp!, $result: Any!
+) @auth(level: NO_ACCESS) @transaction {
+  cvAnalysis_upsert(data: {
+    applicationId: $applicationId, rawText: $rawText, scorePercentage: $score,
+    provider: $provider, modelVersion: $model, scoringVersion: $scoring,
+    analyzedAt: $analyzedAt, result: $result
+  })
+  analysisRun_upsert(data: {
+    id: $runId, applicationId: $applicationId, scorePercentage: $score,
+    provider: $provider, modelVersion: $model, scoringVersion: $scoring,
+    analyzedAt: $analyzedAt, result: $result
+  })
+}
+
+mutation DeleteAnalysis($applicationId: Int!) @auth(level: NO_ACCESS) @transaction {
+  history: analysisRun_deleteMany(where: {applicationId: {eq: $applicationId}})
+  latest: cvAnalysis_delete(key: {applicationId: $applicationId})
+}
+
+# Import one complete application atomically. INSERT refuses existing destinations.
+mutation ImportAnalysis(
+  $analysis: CvAnalysis_Data! @allow(fields: "applicationId rawText scorePercentage provider modelVersion scoringVersion analyzedAt result"),
+  $runs: [AnalysisRun_Data!]! @allow(fields: "id applicationId scorePercentage provider modelVersion scoringVersion analyzedAt result", maxCount: 10000)
+) @auth(level: NO_ACCESS) @transaction {
+  cvAnalysis_insert(data: $analysis)
+  analysisRun_insertMany(data: $runs)
+}

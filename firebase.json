@@ -1,4 +1,11 @@
 {
+  "emulators": {
+    "dataconnect": { "host": "127.0.0.1", "port": 9399, "postgresPort": 9949 },
+    "ui": { "enabled": false }
+  },
+  "dataconnect": {
+    "source": "dataconnect"
+  },
   "firestore": {
     "rules": "database/firestore/firestore.rules",
     "indexes": "database/firestore/firestore.indexes.json"

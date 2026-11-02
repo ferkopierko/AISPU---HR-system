@@ -1,5 +1,9 @@
 # SmartRecruit AI – HR systém
 
+**SQL databáza pre analýzy CV:** pripravené je pripojenie na PostgreSQL cez Firebase
+SQL Connect vrátane atómovej histórie a overovanej migrácie z Firestore.
+Pozri [docs/sqlconnect.md](docs/sqlconnect.md). Používa sa `docker-compose.sqlconnect.yml`.
+
 **Firebase pre analýzy CV:** Backend 2 podporuje Cloud Firestore namiesto MySQL.
 Online konfigurácia, migrácia dát a lokálny emulátor sú v [docs/firebase.md](docs/firebase.md).
 Základné Docker spustenie nižšie zachováva pôvodnú MySQL, kým nie je pripojený Firebase projekt.

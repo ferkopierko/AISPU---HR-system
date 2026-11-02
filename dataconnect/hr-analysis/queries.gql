@@ -1,0 +1,23 @@
+# Only the authenticated Python server may execute these operations through IAM.
+query GetAnalysis($applicationId: Int!) @auth(level: NO_ACCESS) {
+  cvAnalysis(key: {applicationId: $applicationId}) {
+    applicationId analyzedAt result
+  }
+}
+
+query GetAnalysisHistory($applicationId: Int!, $offset: Int!, $limit: Int!) @auth(level: NO_ACCESS) {
+  analysisRuns(where: {applicationId: {eq: $applicationId}},
+               orderBy: [{analyzedAt: ASC}, {id: ASC}], offset: $offset, limit: $limit) {
+    id applicationId analyzedAt result
+  }
+}
+
+query StorageHealth @auth(level: NO_ACCESS) {
+  cvAnalyses(limit: 1) { applicationId }
+}
+
+query ExportAnalysis($applicationId: Int!) @auth(level: NO_ACCESS) {
+  cvAnalysis(key: {applicationId: $applicationId}) {
+    applicationId rawText analyzedAt result
+  }
+}

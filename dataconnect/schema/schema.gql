@@ -1,0 +1,23 @@
+# SQL tables for CV analyses. Application IDs refer to the separate Azure SQL database.
+type CvAnalysis @table(name: "cv_analyses", key: "applicationId") {
+  applicationId: Int!
+  rawText: String!
+  scorePercentage: Float
+  provider: String!
+  modelVersion: String!
+  scoringVersion: String!
+  analyzedAt: Timestamp!
+  result: Any!
+}
+
+type AnalysisRun @table(name: "analysis_runs", key: "id") @index(fields: ["applicationId", "analyzedAt"]) {
+  id: String!
+  applicationId: Int!
+  analysis: CvAnalysis! @ref(fields: "applicationId", references: "applicationId")
+  scorePercentage: Float
+  provider: String!
+  modelVersion: String!
+  scoringVersion: String!
+  analyzedAt: Timestamp!
+  result: Any!
+}
