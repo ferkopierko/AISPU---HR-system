@@ -1,20 +1,19 @@
-// Ikona a farba podľa oddelenia (neznáme oddelenie dostane predvolenú).
-const DEPARTMENTS = {
-  IT: { icon: '💻', color: '#4f46e5', bg: '#eef2ff' },
-  Financie: { icon: '📊', color: '#0f766e', bg: '#ccfbf1' },
-  HR: { icon: '🤝', color: '#be185d', bg: '#fce7f3' },
-  Marketing: { icon: '📣', color: '#c2410c', bg: '#ffedd5' },
-  Obchod: { icon: '💼', color: '#1d4ed8', bg: '#dbeafe' },
-};
-const DEFAULT = { icon: '🏢', color: '#475569', bg: '#f1f5f9' };
+import { IconBriefcase, IconBuilding, IconChart, IconCode, IconMegaphone, IconUsers } from './Icons';
 
-export const departmentStyle = (name) => DEPARTMENTS[name] ?? DEFAULT;
+// Ikona podľa oddelenia (neznáme oddelenie dostane budovu).
+const ICONS = {
+  IT: IconCode,
+  Financie: IconChart,
+  HR: IconUsers,
+  Marketing: IconMegaphone,
+  Obchod: IconBriefcase,
+};
 
 export default function Department({ name }) {
-  const d = departmentStyle(name);
+  const Icon = ICONS[name] ?? IconBuilding;
   return (
-    <span className="dept" style={{ color: d.color }}>
-      <span className="dept-icon" style={{ background: d.bg }}>{d.icon}</span>
+    <span className="dept">
+      <Icon size={14} />
       {name}
     </span>
   );

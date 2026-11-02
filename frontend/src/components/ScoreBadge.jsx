@@ -1,19 +1,33 @@
-/** Úroveň zhody: zelená ≥ 70, oranžová ≥ 40, inak červená. */
+import { useEffect, useState } from 'react';
+
+/** Úroveň zhody: dobrá ≥ 70, stredná ≥ 40, inak slabá. */
 export function scoreLevel(value) {
   if (value == null) return 'none';
   return value >= 70 ? 'high' : value >= 40 ? 'mid' : 'low';
 }
 
-const COLORS = { high: '#16a34a', mid: '#d97706', low: '#dc2626', none: '#cbd5e1' };
+// farby sú v styles.css (--good, --mid, --low)
+const COLORS = { high: 'var(--good)', mid: 'var(--mid)', low: 'var(--low)', none: 'var(--line-strong)' };
+
+/** Hodnota sa po zobrazení „naplní“ z nuly (pri prefers-reduced-motion hneď, cez CSS). */
+function useFill(value) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setShown(value ?? 0));
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+  return shown;
+}
 
 /** Malé percento v tabuľke + pásik. */
 export default function ScoreBadge({ value }) {
   const level = scoreLevel(value);
-  if (value == null) return <span className="score-none">nehodnotené</span>;
+  const fill = useFill(value);
+  if (value == null) return <span className="score-none">bez skóre</span>;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.6rem' }}>
-      <span className={`score-pill score-${level}`}>{Number(value).toFixed(0)} %</span>
-      <span className="bar"><div style={{ width: `${value}%`, background: COLORS[level] }} /></span>
+    <span className={`score score-${level}`}>
+      <span className="num">{Number(value).toFixed(0)} %</span>
+      <span className="bar"><span style={{ width: `${fill}%` }} /></span>
     </span>
   );
 }
@@ -21,21 +35,24 @@ export default function ScoreBadge({ value }) {
 /** Kruhový ukazovateľ skóre. */
 export function ScoreRing({ value, size = 96 }) {
   const level = scoreLevel(value);
-  const stroke = size / 10;
+  const stroke = Math.max(4, size / 14);
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, value ?? 0));
+  const pct = Math.max(0, Math.min(100, useFill(value)));
   return (
-    <div className="ring" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f5" strokeWidth={stroke} />
+    <div className="ring" style={{ width: size, height: size }} role="img" aria-label={value == null ? 'Bez skóre' : `Zhoda ${Math.round(value)} %`}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden="true">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: 'var(--line)' }} strokeWidth={stroke} />
         <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={COLORS[level]} strokeWidth={stroke}
+          cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct / 100)}
-          style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+          style={{ stroke: COLORS[level], transition: 'stroke-dashoffset 1s var(--ease)' }}
         />
       </svg>
-      <span style={{ fontSize: size / 4.2, color: COLORS[level] }}>{value == null ? '–' : `${Math.round(pct)}%`}</span>
+      <span style={{ fontSize: size / 3.4 }}>
+        {value == null ? '–' : Math.round(value)}
+        {value != null && <small>%</small>}
+      </span>
     </div>
   );
 }

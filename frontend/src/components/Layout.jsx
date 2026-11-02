@@ -20,16 +20,21 @@ export default function Layout() {
           </Link>
           <nav className="nav" aria-label="Hlavná navigácia">
             <NavLink to="/jobs">Pozície</NavLink>
-            {user?.role === 'admin' && <NavLink to="/admin">HR prehľad</NavLink>}
+            {user?.role === 'user' && <NavLink to="/my">Moje prihlášky</NavLink>}
+            {user?.role === 'admin' && <NavLink to="/admin" end>Prihlášky</NavLink>}
+            {user?.role === 'admin' && <NavLink to="/admin/jobs">Správa pozícií</NavLink>}
           </nav>
           <div className="user">
             {user ? (
               <>
-                <span className="avatar" aria-hidden="true">{initials(user.email)}</span>
-                <span className="user-info">
-                  <span>{user.email}</span>
-                  <span>{user.role === 'admin' ? 'HR manažér' : 'Uchádzač'}</span>
-                </span>
+                <Link to="/profile" className="user-link" title="Môj profil">
+                  <span className="avatar" aria-hidden="true">{initials(user.fullName || user.email)}</span>
+                  <span className="user-info">
+                    <span>{user.fullName || user.email}</span>
+                    <span>{user.role === 'admin' ? 'HR manažér' : 'Uchádzač'} · profil</span>
+                  </span>
+                  <span className="visually-hidden">Môj profil</span>
+                </Link>
                 <button className="ghost" onClick={handleLogout} title="Odhlásiť sa">
                   <IconLogOut size={16} />
                   <span className="visually-hidden">Odhlásiť sa</span>
@@ -55,7 +60,8 @@ export default function Layout() {
   );
 }
 
-export function initials(email = '') {
-  const name = email.split('@')[0].replace(/[^a-zA-Z]/g, ' ').trim().split(/\s+/);
+/** Iniciály z mena („Ján Novák“ -> JN) alebo z e-mailu (jan.novak@… -> JN). */
+export function initials(text = '') {
+  const name = text.split('@')[0].replace(/[^\p{L}]/gu, ' ').trim().split(/\s+/);
   return ((name[0]?.[0] ?? '') + (name[1]?.[0] ?? name[0]?.[1] ?? '')).toUpperCase() || '?';
 }

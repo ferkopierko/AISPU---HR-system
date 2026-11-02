@@ -16,7 +16,8 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login: async (email, password) => setUser(await auth.login(email, password)),
-    register: async (email, password) => setUser(await auth.register(email, password)),
+    register: async (data) => setUser(await auth.register(data)),
+    updateProfile: async (data) => setUser(await auth.updateMe(data)),
     logout: async () => {
       await auth.logout();
       setUser(null);

@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
 import AuthLayout from '../components/AuthLayout';
 import { IconAlert } from '../components/Icons';
+import { homePath } from '../components/RequireRole';
 
 // Registrácia vytvorí vždy rolu uchádzač. HR účet sa zakladá skriptom v backend-1.
 export default function Register() {
-  const { register } = useAuth();
-  const navigate = useNavigate();
+  const { user, register } = useAuth();
   const location = useLocation();
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Prihlásený (aj hneď po registrácii) ide preč – späť na pozíciu, odkiaľ prišiel, inak domov.
+  if (user) return <Navigate to={homePath(user, location.state?.from)} replace />;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -21,11 +26,9 @@ export default function Register() {
     setError('');
     setBusy(true);
     try {
-      await register(email, password);
-      navigate(location.state?.from?.startsWith('/jobs/') ? location.state.from : '/jobs', { replace: true });
+      await register({ email, password, fullName, phone: phone.trim() || undefined });
     } catch (err) {
       setError(err.message);
-    } finally {
       setBusy(false);
     }
   }
@@ -38,10 +41,25 @@ export default function Register() {
           <p className="muted">HR účty zakladá administrátor, tu sa registrujú len uchádzači.</p>
         </header>
         <label>
+          Meno a priezvisko
+          <input
+            id="register-name" type="text" autoComplete="name" value={fullName}
+            onChange={(e) => setFullName(e.target.value)} placeholder="Ján Novák" minLength={2} maxLength={200} required autoFocus
+          />
+        </label>
+        <label>
+          <span>Telefón <span className="field-optional">nepovinné</span></span>
+          <input
+            id="register-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone}
+            onChange={(e) => setPhone(e.target.value)} placeholder="+421 900 123 456" aria-describedby="register-phone-hint"
+          />
+          <span className="field-hint" id="register-phone-hint">HR vás môže kontaktovať aj telefonicky.</span>
+        </label>
+        <label>
           E-mail
           <input
             id="register-email" type="email" autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} placeholder="meno@email.sk" required autoFocus
+            onChange={(e) => setEmail(e.target.value)} placeholder="meno@email.sk" required
           />
         </label>
         <label>
@@ -62,7 +80,7 @@ export default function Register() {
         {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
         <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{busy ? 'Vytváram účet…' : 'Vytvoriť účet'}</button>
         <p className="auth-switch">
-          Už máte účet? <Link to="/login">Prihláste sa</Link>
+          Už máte účet? <Link to="/login" state={location.state}>Prihláste sa</Link>
         </p>
       </form>
     </AuthLayout>
