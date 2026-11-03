@@ -19,8 +19,17 @@ DB_PROVIDER = os.getenv("ANALYSIS_DB_PROVIDER", "mysql").strip().lower()
 if DB_PROVIDER not in {"mysql", "firestore", "sqlconnect"}:
     raise RuntimeError("ANALYSIS_DB_PROVIDER musí byť mysql, firestore alebo sqlconnect")
 
-# MySQL je povinná vždy – aj vo firestore režime v nej beží fronta analýz (analysis_jobs).
-REQUIRED = ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"] + (["FIREBASE_PROJECT_ID"] if DB_PROVIDER in {"firestore", "sqlconnect"} else [])
+# Fronta analýz (analysis_jobs): predvolene MySQL; vo firestore režime môže byť aj vo Firestore,
+# potom Backend 2 MySQL vôbec nepotrebuje.
+QUEUE_PROVIDER = os.getenv("ANALYSIS_QUEUE_PROVIDER", "mysql").strip().lower()
+if QUEUE_PROVIDER not in {"mysql", "firestore"}:
+    raise RuntimeError("ANALYSIS_QUEUE_PROVIDER musí byť mysql alebo firestore")
+if QUEUE_PROVIDER == "firestore" and DB_PROVIDER != "firestore":
+    raise RuntimeError("ANALYSIS_QUEUE_PROVIDER=firestore vyžaduje ANALYSIS_DB_PROVIDER=firestore")
+USES_MYSQL = DB_PROVIDER == "mysql" or QUEUE_PROVIDER == "mysql"
+
+REQUIRED = (["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD"] if USES_MYSQL else []) \
+    + (["FIREBASE_PROJECT_ID"] if DB_PROVIDER in {"firestore", "sqlconnect"} else [])
 
 missing = [name for name in REQUIRED if not os.getenv(name)]
 if missing:
@@ -30,6 +39,8 @@ if missing:
 @dataclass(frozen=True)
 class Settings:
     db_provider: str
+    queue_provider: str
+    uses_mysql: bool
     firebase_project_id: str
     firestore_database_id: str
     mysql_host: str
@@ -68,6 +79,8 @@ class Settings:
 
 settings = Settings(
     db_provider=DB_PROVIDER,
+    queue_provider=QUEUE_PROVIDER,
+    uses_mysql=USES_MYSQL,
     firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", ""),
     firestore_database_id=os.getenv("FIRESTORE_DATABASE_ID") or "(default)",
     mysql_host=os.getenv("MYSQL_HOST", "localhost"),

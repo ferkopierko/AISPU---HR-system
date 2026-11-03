@@ -52,8 +52,10 @@ prihlasovanie a účty ďalej spravuje Backend 1.
    docker compose -f docker-compose.yml -f docker-compose.firestore.yml up -d --build
    ```
 
-MySQL musí ostať spustená: je v nej fronta analýz (`analysis_jobs`), ktorú používa
-worker aj vo Firestore režime. Do Firestore sa ukladajú iba výsledky analýz; úloha sa
+Predvolene musí MySQL ostať spustená: je v nej fronta analýz (`analysis_jobs`), ktorú používa
+worker aj vo Firestore režime. S `ANALYSIS_QUEUE_PROVIDER=firestore` je fronta v kolekcii
+`analysis_jobs` vo Firestore ([`firestore_jobs.py`](../backend-2/app/firestore_jobs.py)) a MySQL
+netreba – výsledok aj stav úlohy sa vtedy zapíšu v jednej transakcii. Do Firestore sa ukladajú iba výsledky analýz; úloha sa
 označí ako dokončená až po potvrdenom zápise do Firestore. GDPR mazanie odstráni
 výsledky vo Firestore aj úlohy vo fronte (ich payload obsahuje text CV).
 

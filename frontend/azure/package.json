@@ -1,0 +1,17 @@
+{
+  "name": "hr-frontend-azure",
+  "private": true,
+  "description": "Server frontendu pre Azure App Service: statický React build + proxy na backendy",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5"
+  }
+}

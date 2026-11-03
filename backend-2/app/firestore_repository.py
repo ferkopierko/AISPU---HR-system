@@ -43,19 +43,24 @@ class FirestoreAnalysisRepository:
     def __init__(self, client=None, jobs=None):
         self.client = client if client is not None else get_client()
         if jobs is None:
-            from .analysis_jobs import JobRepository
-            jobs = JobRepository()
-        self.jobs = jobs  # fronta analýz ostáva v MySQL aj vo firestore režime
+            from .analysis_jobs import get_job_repository
+            jobs = get_job_repository()
+        self.jobs = jobs  # fronta analýz – MySQL alebo Firestore podľa ANALYSIS_QUEUE_PROVIDER
 
-    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime:
-        # connection (MySQL transakcia) sa ignoruje – Firestore zápis do nej nemôže patriť.
+    def stage(self, writer, application_id: int, result: AnalysisResult) -> datetime:
+        """Pridá zápis výsledku a histórie do batchu alebo transakcie (writer) bez commitu."""
         at = datetime.now(timezone.utc)
         document = analysis_document(application_id, result, at)
         ref = self.client.collection("cv_analyses").document(str(application_id))
+        writer.set(ref, document)
+        writer.create(ref.collection("history").document(),
+                      {field: document[field] for field in RESULT_FIELDS})
+        return at
+
+    def save(self, application_id: int, result: AnalysisResult, *, connection=None) -> datetime:
+        # connection (MySQL transakcia) sa ignoruje – Firestore zápis do nej nemôže patriť.
         batch = self.client.batch()
-        batch.set(ref, document)
-        batch.create(ref.collection("history").document(),
-                     {field: document[field] for field in RESULT_FIELDS})
+        at = self.stage(batch, application_id, result)
         batch.commit(timeout=20, retry=None)
         return at
 
@@ -70,8 +75,8 @@ class FirestoreAnalysisRepository:
     def delete(self, application_ids: list[int]) -> int:
         if not application_ids:
             return 0
-        # Najprv úlohy v MySQL (payload obsahuje text CV – GDPR). DELETE počká na worker,
-        # ktorý drží zámok riadku počas ukladania, a po ňom už worker výsledok nezapíše.
+        # Najprv úlohy vo fronte (payload obsahuje text CV – GDPR). Worker overuje úlohu v tej istej
+        # transakcii (Firestore) alebo pod zámkom riadku (MySQL), takže po zmazaní výsledok nezapíše.
         with_jobs = self.jobs.delete(application_ids)
         found = 0
         for application_id in sorted(set(application_ids)):

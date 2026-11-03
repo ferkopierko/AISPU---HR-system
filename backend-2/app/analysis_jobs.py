@@ -1,4 +1,4 @@
-"""Durable MySQL work queue; atomic claims, expiring leases, bounded crash recovery."""
+"""Durable work queue (MySQL; Firestore variant in firestore_jobs.py); atomic claims, expiring leases, bounded crash recovery."""
 
 import json
 import logging
@@ -12,6 +12,21 @@ from .nlp.providers import ProviderError
 from .repository import AnalysisTooLargeError, MySQLAnalysisRepository, _json
 
 log = logging.getLogger("uvicorn.error")
+
+
+_wake = threading.Event()
+
+
+def notify_worker():
+    """Zobudí workera v tomto procese – nová alebo znova zaradená úloha."""
+    _wake.set()
+
+
+def get_job_repository():
+    if settings.queue_provider == "firestore":
+        from .firestore_jobs import FirestoreJobRepository
+        return FirestoreJobRepository()
+    return JobRepository()
 
 
 class JobRepository:
@@ -128,17 +143,23 @@ class AnalysisWorker:
 
     def stop(self):
         self.stop_event.set()
+        _wake.set()
         self.thread.join(timeout=5)
 
     def run(self):
+        # Firestore účtuje každý dotaz, preto sa prázdna fronta kontroluje zriedka;
+        # nová úloha z tohto procesu workera zobudí okamžite (notify_worker).
+        idle_seconds = 30 if settings.queue_provider == "firestore" else 1
         ready = False
         while not self.stop_event.is_set():
             try:
                 if not ready:
-                    db.ensure_schema()
+                    if settings.queue_provider == "mysql":
+                        db.ensure_schema()
                     ready = True
-                if not process_one(JobRepository()):
-                    self.stop_event.wait(1)
+                if not process_one(get_job_repository()):
+                    _wake.wait(idle_seconds)
+                    _wake.clear()
             except Exception:
                 ready = False
                 log.error("Rad analýz je dočasne nedostupný, ďalší pokus o 5 sekúnd")
