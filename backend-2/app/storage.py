@@ -15,16 +15,18 @@ def get_repository() -> AnalysisRepository:
 
 
 def initialize() -> None:
-    # Fronta analýz (analysis_jobs) je v MySQL vo všetkých režimoch.
-    from . import db
-    db.ensure_schema()
+    # MySQL (výsledky a/alebo fronta analýz) sa použije iba, ak je nastavená.
+    if settings.uses_mysql:
+        from . import db
+        db.ensure_schema()
     if settings.db_provider in {"firestore", "sqlconnect"}:
         ping()
 
 
 def ping() -> bool:
-    from . import db
-    db.ping()
+    if settings.uses_mysql:
+        from . import db
+        db.ping()
     if settings.db_provider == "sqlconnect":
         from . import sqlconnect_client
         return sqlconnect_client.ping()

@@ -1,5 +1,9 @@
 # SmartRecruit AI – HR systém
 
+**Nasadené:** <https://hr-frontend-frantisek.azurewebsites.net> – frontend aj oba backendy na Azure
+App Service (F1), Backend 1 s Azure SQL, dáta Backendu 2 vo Firebase Firestore.
+Pozri [docs/azure-nasadenie.md](docs/azure-nasadenie.md).
+
 **SQL databáza pre analýzy CV:** pripravené je pripojenie na PostgreSQL cez Firebase
 SQL Connect vrátane atómovej histórie a overovanej migrácie z Firestore.
 Pozri [docs/sqlconnect.md](docs/sqlconnect.md). Používa sa `docker-compose.sqlconnect.yml`.

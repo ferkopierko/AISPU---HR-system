@@ -5,11 +5,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, File, Form, HTTPException, Path, UploadFile
 
-from ..analysis_jobs import JobRepository
+from ..analysis_jobs import JobRepository, get_job_repository, notify_worker
 from ..backend1 import SESSION_COOKIE, Backend1Client, Backend1Error, get_backend1
 from ..config import settings
 from ..nlp import contact, parser, preprocess
-from ..repository import AnalysisRepository
+from ..repository import AnalysisRepository, AnalysisTooLargeError
 from ..schemas import AnalysisResponse, AnalysisJobResponse
 from ..storage import get_repository
 
@@ -19,7 +19,7 @@ ApplicationId = Annotated[int, Path(gt=0, le=2_147_483_647)]
 
 
 def get_jobs():
-    return JobRepository()
+    return get_job_repository()
 
 
 def authorize(backend1, application_id, cookie):
@@ -66,8 +66,13 @@ def analyze(
         raise HTTPException(422, str(exc)) from exc
     except Backend1Error as exc:
         raise HTTPException(exc.status, exc.message) from exc
-    return jobs.enqueue(application_id, {"raw_text": raw, "kind": kind, "requirements": context["requirements"],
-                                        "document_sha256": hashlib.sha256(data).hexdigest()}, settings.ai_provider)
+    try:
+        job = jobs.enqueue(application_id, {"raw_text": raw, "kind": kind, "requirements": context["requirements"],
+                                           "document_sha256": hashlib.sha256(data).hexdigest()}, settings.ai_provider)
+    except AnalysisTooLargeError as exc:
+        raise HTTPException(413, str(exc)) from exc
+    notify_worker()
+    return job
 
 
 @router.get("/status/{application_id}", response_model=AnalysisJobResponse)
@@ -93,8 +98,8 @@ def retry(application_id: ApplicationId, jobs: Annotated[JobRepository, Depends(
         raise HTTPException(404, "Najprv treba nahrať CV k existujúcej prihláške")
     if row["state"] == "completed":
         raise HTTPException(409, "Analýza je už dokončená")
-    if row["state"] == "failed":
-        jobs.retry(application_id)
+    if row["state"] == "failed" and jobs.retry(application_id):
+        notify_worker()
     return jobs.status(application_id)
 
 
