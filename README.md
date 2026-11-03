@@ -178,7 +178,7 @@ cd frontend; npm install; npm run dev      # http://localhost:5173
 | Frontend (React, spája oba backendy) | ✅ hotové, prebieha vizuálny redizajn | [frontend/README.md](frontend/README.md) |
 | Docker nasadenie (5 kontajnerov) | ✅ hotové | táto stránka |
 | Vzorové CV na testovanie | ✅ hotové (13 CV, označenie vhodný / čiastočne / nevhodný v `labels.csv`) | [sample-data/cv/](sample-data/cv/) |
-| BPMN (60 činností, 2 bazény, 3 dráhy, podproces) | ✅ hotové | [docs/smartrecruit-proces.bpmn](docs/smartrecruit-proces.bpmn) (náhľad: [SVG](docs/smartrecruit-proces.svg)) |
+| BPMN (60 činností, 2 bazény, 3 dráhy, podproces) | ✅ hotové | [docs/smartrecruit-proces.bpmn](docs/smartrecruit-proces.bpmn) (náhľad: [SVG](docs/diagram.svg)) |
 | Trénovaný ML model | ❌ chýba (teraz je NLP + pravidlové skóre, nič sa netrénuje) | – |
 
 ### Čo ešte chýba v aplikácii
