@@ -115,7 +115,7 @@ export default function AdminJobs() {
                       </span>
                     </td>
                     <td className="num-col num">
-                      {job.applicationCount > 0 ? <Link to={`/admin?jobId=${job.id}`}>{job.applicationCount}</Link> : 0}
+                      {job.applicationCount > 0 ? <Link to={`/applications?jobId=${job.id}`}>{job.applicationCount}</Link> : 0}
                     </td>
                     <td className="hide-sm num">{formatDay(job.deadline) ?? <span className="muted">bez uzávierky</span>}</td>
                     <td className="row-actions">

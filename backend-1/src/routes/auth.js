@@ -6,6 +6,7 @@ const db = require('../db/azureSql');
 const HttpError = require('../utils/httpError');
 const { parseEmail, parsePassword, parseFullName, parsePhone } = require('../utils/validate');
 const { requireAuth } = require('../middleware/auth');
+const { clearCookieOptions } = require('../middleware/session');
 
 const router = express.Router();
 const BCRYPT_ROUNDS = 12;
@@ -14,16 +15,30 @@ const SQL_UNIQUE_VIOLATION = [2627, 2601];
 // neprezradil, či účet existuje.
 const DUMMY_HASH = bcrypt.hashSync('dummy-password', BCRYPT_ROUNDS);
 
-/** Nová session (ochrana pred session fixation) + zápis userId a role. */
+/** Nová session (ochrana pred session fixation) + zápis userId, role a portálu. */
 function startSession(req, user) {
   return new Promise((resolve, reject) => {
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = user.id;
       req.session.role = user.role;
+      req.session.clientApp = req.clientApp; // podľa neho requireRole pustí HR endpointy iba z HR portálu
       req.session.save((saveErr) => (saveErr ? reject(saveErr) : resolve()));
     });
   });
+}
+
+// Kto sa smie prihlásiť do ktorého portálu (X-Client-App, middleware/session.js).
+const PORTAL_ROLES = { candidate: ['user'], hr: ['admin', 'sysadmin'] };
+const PORTAL_DENIED = {
+  candidate: 'HR účty sa prihlasujú v HR portáli',
+  hr: 'Tento účet nemá prístup do HR portálu',
+};
+
+/** Portál z hlavičky X-Client-App; bez nej sa prihlásiť ani registrovať nedá. */
+function requirePortal(req) {
+  if (!req.clientApp) throw new HttpError(400, 'Chýba hlavička X-Client-App (candidate alebo hr)');
+  return req.clientApp;
 }
 
 const USER_COLUMNS = 'id, email, role, full_name, phone';
@@ -37,6 +52,9 @@ async function loadUser(id) {
 // POST /api/auth/register  { email, password, fullName, phone? }
 // Registrovať sa dá iba ako 'user'; admina vytvára skript scripts/create-admin.js.
 router.post('/register', async (req, res) => {
+  if (requirePortal(req) !== 'candidate') {
+    throw new HttpError(403, 'Registrácia je dostupná iba v portáli uchádzača');
+  }
   const email = parseEmail(req.body?.email);
   const password = parsePassword(req.body?.password);
   const fullName = parseFullName(req.body?.fullName);
@@ -65,6 +83,7 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login  { email, password }
 router.post('/login', async (req, res) => {
+  const portal = requirePortal(req);
   const email = parseEmail(req.body?.email);
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
@@ -77,16 +96,20 @@ router.post('/login', async (req, res) => {
   if (!user || !ok) {
     throw new HttpError(401, 'Nesprávny email alebo heslo');
   }
+  // rola sa overuje až po správnom hesle, aby sa nedalo zisťovať, ktoré účty sú HR
+  if (!PORTAL_ROLES[portal].includes(user.role)) {
+    throw new HttpError(403, PORTAL_DENIED[portal]);
+  }
 
   await startSession(req, user);
   res.json({ user: toPublicUser(user) });
 });
 
-// POST /api/auth/logout
+// POST /api/auth/logout – zmaže session a cookie portálu, z ktorého prišla požiadavka
 router.post('/logout', (req, res, next) => {
   req.session.destroy((err) => {
     if (err) return next(err);
-    res.clearCookie('hr.sid');
+    res.clearCookie(req.sessionCookieName, clearCookieOptions);
     res.status(204).end();
   });
 });

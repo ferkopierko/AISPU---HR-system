@@ -5,7 +5,8 @@ Rozdelenie: **Azure** hostí všetky tri aplikácie a databázu Backendu 1 (Azur
 
 | Čo | Kde | Adresa / zdroj |
 |----|-----|----------------|
-| Frontend (React + Node proxy) | Azure Web App `hr-frontend-frantisek` | <https://hr-frontend-frantisek.azurewebsites.net> |
+| Portál uchádzača (React + Node proxy) | Azure Web App `hr-frontend-frantisek` | <https://hr-frontend-frantisek.azurewebsites.net> |
+| HR portál (ten istý kód, `CLIENT_APP=hr`) | druhá Azure Web App, zatiaľ nenasadená (napr. `hr-frontend-hr-frantisek`) | – |
 | Backend 1 (Node.js / Express) | Azure Web App `hr-backend1-frantisek` | `https://hr-backend1-frantisek.azurewebsites.net` |
 | Backend 2 (Python / FastAPI, NLP) | Azure Web App `hr-backend2-frantisek` | `https://hr-backend2-frantisek.azurewebsites.net` |
 | Databáza Backendu 1 | Azure SQL `zadanie/sqlzadanie` | používatelia, pozície, prihlášky, súbory CV |
@@ -21,9 +22,10 @@ Azure z inej domény a prehliadač by zablokoval session cookie.
 ## Architektúra
 
 ```
-prehliadač ──▶ hr-frontend  (dist/ + proxy, frontend/azure/server.js)
+prehliadač ──▶ hr-frontend     (portál uchádzača, CLIENT_APP=candidate)
+           ──▶ hr-frontend-hr  (HR portál, CLIENT_APP=hr)
                  │ /api/ml/* ─────────────▶ hr-backend2 ──▶ Firebase Firestore
-                 │ /api/*   ──▶ hr-backend1 ──▶ Azure SQL        (cv_analyses, analysis_jobs)
+                 │ /api/*   ──▶ hr-backend1 ──▶ Azure SQL        (cv_analyses, analysis_jobs, sessions)
                                  ▲     │
                     X-Internal-Key│     │ X-Internal-Key
                                  │     ▼
@@ -32,9 +34,30 @@ prehliadač ──▶ hr-frontend  (dist/ + proxy, frontend/azure/server.js)
 ```
 
 Na App Service nebeží nginx, preto [`frontend/azure/server.js`](../frontend/azure/server.js)
-robí to isté ako [`nginx.conf`](../frontend/nginx.conf): servíruje React a presmeruje `/api/ml`
+robí to isté ako [`nginx.candidate.conf`](../frontend/nginx.candidate.conf) /
+[`nginx.hr.conf`](../frontend/nginx.hr.conf): servíruje React a presmeruje `/api/ml`
 na Backend 2 a `/api` na Backend 1. Prehliadač volá jeden origin, takže session cookie funguje
 bez CORS (s `NODE_ENV=production` je cookie `Secure`).
+
+### HR portál – druhá App Service
+
+HR portál je ten istý kód ako portál uchádzača, len zostavený a spustený s iným nastavením
+(podrobnosti v [frontendy-a-sessions.md](frontendy-a-sessions.md)):
+
+| | Portál uchádzača | HR portál |
+|---|---|---|
+| Web App | `hr-frontend-frantisek` | nová, napr. `hr-frontend-hr-frantisek` (plán `studenti-flask-plan`) |
+| Zostavenie | `npm run build` | `VITE_APP=hr npm run build` (alebo `npm run build:hr` → `dist-hr/`, nahrať ako `dist/`) |
+| App setting `CLIENT_APP` | `candidate` (predvolené) | `hr` |
+| Ďalšie App settings | `BACKEND1_URL`, `BACKEND2_URL` | rovnaké |
+
+- Pri zostavení oboch portálov nastaviť `VITE_HR_URL` a `VITE_CANDIDATE_URL` na verejné adresy
+  Web Apps – podľa nich sa vytvoria odkazy „Prejsť do HR portálu“ a „Verejné ponuky“.
+- Do `CORS_ORIGIN` Backendu 1 aj Backendu 2 pridať adresu HR portálu (oddelené čiarkou).
+- `server.js` posiela backendom hlavičku `X-Client-App` podľa `CLIENT_APP`; Backend 1 podľa nej
+  vyberie cookie (`sr.candidate.sid` / `sr.hr.sid`) a povolené roly.
+- [`deploy/azure/deploy.sh`](../deploy/azure/deploy.sh) zatiaľ nasadzuje iba portál uchádzača,
+  cieľ pre HR portál treba doplniť (zip z `dist` zostaveného s `VITE_APP=hr`).
 
 ## Spoločný Firestore a ID prihlášok
 
@@ -65,7 +88,7 @@ Heslá a kľúče sú iba v App settings v Azure a v ignorovanom `.secrets/` –
   `FIREBASE_PROJECT_ID`, `FIRESTORE_DATABASE_ID=(default)`,
   `GOOGLE_APPLICATION_CREDENTIALS=/home/secrets/firebase-admin.json`, `AI_PROVIDER=local_rules`,
   `BACKEND1_URL`, `INTERNAL_API_KEY`, `CORS_ORIGIN`.
-- **Frontend:** `BACKEND1_URL`, `BACKEND2_URL`.
+- **Frontend (oba portály):** `BACKEND1_URL`, `BACKEND2_URL`, `CLIENT_APP` (`candidate` / `hr`).
 
 Firebase kľúč je súbor `/home/secrets/firebase-admin.json` vo web aplikácii Backendu 2 – mimo
 `wwwroot`, takže ho nasadenie kódu neprepíše a aplikácia ho neservíruje. Výmena kľúča:
@@ -83,7 +106,7 @@ az webapp deploy -g IS_HR_system_AISPU -n hr-backend2-frantisek --type static \
   a dokončia sa po prebudení.
 - Prázdnu frontu worker kontroluje raz za 30 s (bezplatná kvóta Firestore je 50 000 čítaní
   denne); nová prihláška ho zobudí okamžite.
-- Sessions sú v pamäti Backendu 1 – po reštarte alebo uspaní sa treba znova prihlásiť.
+- Sessions sú v Azure SQL (`dbo.sessions`), takže reštart ani uspanie Backendu 1 používateľa neodhlási.
 - Backendy majú verejnú adresu (F1 nemá privátnu sieť). Chránia ich prihlásenie (session)
   a `X-Internal-Key` pre interné API.
 

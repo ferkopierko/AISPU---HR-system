@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:hr": "vite --mode hr",
     "build": "vite build",
+    "build:hr": "vite build --mode hr --outDir dist-hr",
     "preview": "vite preview"
   },
   "dependencies": {
