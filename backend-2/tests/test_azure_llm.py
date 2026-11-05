@@ -20,13 +20,15 @@ def config(**overrides):
                                    internal_api_key='test-only-internal')|overrides))
 
 
-def body(skills=None, **overrides):
+def body(skills=None, review_summary=None, **overrides):
     if skills is None:
         skills=[{'mention':'Python','evidence':'Python používam štyri roky.','assertion':'supported'},
                 {'mention':'Docker','evidence':'Docker sa zatiaľ učím.','assertion':'learning'},
                 {'mention':'SQL','evidence':'SQL neovládam.','assertion':'negated'}]
+    result={'skills':skills}
+    if review_summary is not None:result['review_summary']=review_summary
     return {'status':'completed','model':'gpt-4.1-mini-2025-04-14',
-            'output':[{'type':'message','status':'completed','role':'assistant','content':[{'type':'output_text','text':json.dumps({'skills':skills})}]}],
+            'output':[{'type':'message','status':'completed','role':'assistant','content':[{'type':'output_text','text':json.dumps(result)}]}],
             'usage':{'input_tokens':230,'output_tokens':120,'total_tokens':350},**overrides}
 
 
@@ -53,12 +55,45 @@ def test_wire_schema_model_evidence_unicode_and_no_made_up_confidence():
 
 
 def test_pipeline_does_not_let_model_generate_score_or_count_learning():
-    llm,_=client(httpx.Response(200,json=body()))
+    llm,_=client(httpx.Response(200,json=body(review_summary=['Zhoda je čiastočná.','Doložený je Python.','Docker sa uchádzač učí, SQL neovláda.','Overte praktické použitie Pythonu.'])))
     outcome=analyze_text(TEXT,'pdf','[{"skill":"Python","weight":5},{"skill":"SQL","weight":3},{"skill":"Docker","weight":2}]',provider='azure_llm',azure_client=llm)
     assert outcome.score_percentage==50 and outcome.matched_skills==['Python']
     assert set(outcome.uncertain_skills)=={'Docker','SQL'} and outcome.missing_skills==[]
     assert outcome.analysis_metadata['usage']['total_tokens']==350
     assert outcome.skill_evidence[2]['mentions'][0]['assertion']=='learning'
+
+
+def test_joint_call_reads_cv_and_complete_position_and_stores_summary_once():
+    lines=['CV opisuje vývoj backendových služieb.','Dokladá Python aj angličtinu.','Prax s Dockerom nie je doložená.','Overte praktické použitie Pythonu.']
+    source='Python používam denne. English (B2).'
+    skills=[{'mention':'Python','evidence':'Python používam denne.','assertion':'supported'},
+            {'mention':'English','evidence':'English (B2).','assertion':'supported'}]
+    llm,calls=client(httpx.Response(200,json=body(skills,review_summary=lines)))
+    position={'title':'Backend Developer','description':'Vývoj interných služieb.','responsibilities':'Návrh API.'}
+    result=analyze_text(source,'pdf','Python, English',provider='azure_llm',azure_client=llm,position=position)
+    assert result.score_percentage==100 and 'English' in result.matched_skills
+    assert len(calls)==1
+    payload=json.loads(calls[0].content)
+    assert payload['input'][0]['content'][0]['text']==source
+    for value in position.values():assert value in payload['input'][0]['content'][1]['text']
+    summary=result.analysis_metadata['review_summary']
+    assert summary['lines']==lines and summary['usage']=={}
+    assert summary['usage_scope']=='shared_analysis' and summary['shared_usage']['total_tokens']==350
+    assert result.analysis_metadata['position_snapshot']['description']==position['description']
+
+
+def test_joint_schema_requires_four_short_sentences_and_cv_only_evidence():
+    for lines in [[],['one']*3,['one']*5,['x'*401]*4,['one\ntwo']*4]:
+        llm,_=client(httpx.Response(200,json=body([],review_summary=lines)))
+        with pytest.raises(ProviderError):llm.extract('No skills.',position={'requirements':'Python'})
+    llm,_=client(httpx.Response(200,json=body([{'mention':'Python','evidence':'Python is required.','assertion':'supported'}],review_summary=['line']*4)))
+    with pytest.raises(ProviderError):llm.extract('Backend developer.',position={'requirements':'Python is required.'})
+
+
+def test_joint_input_limit_never_silently_truncates_or_sends_oversized_job():
+    llm,calls=client(httpx.Response(200,json=body()),config(azure_llm_max_characters=100))
+    with pytest.raises(ProviderError):llm.extract('Python.',position={'description':'x'*101})
+    assert calls==[]
 
 
 @pytest.mark.parametrize('mention,evidence',[('Kubernetes','Kubernetes používam denne.'),('Python','Python používam desať rokov.'),('Python','Pythonista som od narodenia.')])

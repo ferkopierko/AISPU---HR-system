@@ -63,7 +63,15 @@ export const applications = {
   history: (id) => request(`/api/applications/${id}/history`).then((d) => d.history),
 };
 
+export const system = {
+  users: () => request('/api/system/users').then((d) => d.users),
+  history: () => request('/api/system/role-history').then((d) => d.history),
+  setRole: (id, role, previousRole) => request(`/api/system/users/${id}/role`, { method: 'PATCH', body: { role, previousRole } }).then((d) => d.user),
+};
+
 export const admin = {
+  reviewSummary: (id) => request(`/api/admin/applications/${id}/summary`),
+  createReviewSummary: (id) => request(`/api/admin/applications/${id}/summary`, { method: 'POST' }),
   applications: (filters = {}) => {
     const qs = new URLSearchParams(Object.entries(filters).filter(([, v]) => v)).toString();
     return request(`/api/admin/applications${qs ? `?${qs}` : ''}`).then((d) => d.applications);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { usePreferences } from '../preferences';
 import AuthLayout from '../components/AuthLayout';
 import { IconAlert } from '../components/Icons';
 import { homePath } from '../components/RequireRole';
@@ -8,6 +9,7 @@ import { homePath } from '../components/RequireRole';
 // Registrácia vytvorí vždy rolu uchádzač. HR účet sa zakladá skriptom v backend-1.
 export default function Register() {
   const { user, register } = useAuth();
+  const { t, language } = usePreferences();
   const location = useLocation();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,7 +30,7 @@ export default function Register() {
     try {
       await register({ email, password, fullName, phone: phone.trim() || undefined });
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof TypeError ? 'Nepodarilo sa pripojiť. Skúste to znova.' : err.message);
       setBusy(false);
     }
   }
@@ -37,50 +39,50 @@ export default function Register() {
     <AuthLayout>
       <form className="form" onSubmit={handleSubmit}>
         <header>
-          <h2>Nový účet uchádzača</h2>
-          <p className="muted">HR účty zakladá administrátor, tu sa registrujú len uchádzači.</p>
+          <h2>{t('Vytvorte si účet')}</h2>
+          <p className="muted">{t('Majte svoje pracovné príležitosti poruke.')}</p>
         </header>
         <label>
-          Meno a priezvisko
+          {t('Meno a priezvisko')}
           <input
             id="register-name" type="text" autoComplete="name" value={fullName}
-            onChange={(e) => setFullName(e.target.value)} placeholder="Ján Novák" minLength={2} maxLength={200} required autoFocus
+            onChange={(e) => setFullName(e.target.value)} placeholder={language === 'en' ? 'John Smith' : 'Ján Novák'} minLength={2} maxLength={200} required
           />
         </label>
         <label>
-          <span>Telefón <span className="field-optional">nepovinné</span></span>
+          <span>{t('Telefón')} <span className="field-optional">{t('nepovinné')}</span></span>
           <input
             id="register-phone" type="tel" inputMode="tel" autoComplete="tel" value={phone}
             onChange={(e) => setPhone(e.target.value)} placeholder="+421 900 123 456" aria-describedby="register-phone-hint"
           />
-          <span className="field-hint" id="register-phone-hint">HR vás môže kontaktovať aj telefonicky.</span>
+          <span className="field-hint" id="register-phone-hint">{t('Na kontaktovanie ohľadom vašej prihlášky.')}</span>
         </label>
         <label>
-          E-mail
+          {t('E-mail')}
           <input
             id="register-email" type="email" autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} placeholder="meno@email.sk" required
+            onChange={(e) => setEmail(e.target.value)} placeholder={language === 'en' ? 'name@example.com' : 'meno@email.sk'} required
           />
         </label>
         <label>
-          Heslo
+          {t('Heslo')}
           <input
             id="register-password" type="password" autoComplete="new-password" value={password}
             onChange={(e) => setPassword(e.target.value)} minLength={8} required aria-describedby="register-password-hint"
           />
-          <span className="field-hint" id="register-password-hint">Aspoň 8 znakov.</span>
+          <span className="field-hint" id="register-password-hint">{t('Aspoň 8 znakov.')}</span>
         </label>
         <label>
-          Heslo znova
+          {t('Heslo znova')}
           <input
             id="register-password2" type="password" autoComplete="new-password" value={password2}
             onChange={(e) => setPassword2(e.target.value)} required
           />
         </label>
-        {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
-        <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{busy ? 'Vytváram účet…' : 'Vytvoriť účet'}</button>
+        {error && <p className="error" role="alert"><IconAlert size={16} />{t(error)}</p>}
+        <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{t(busy ? 'Vytváram účet…' : 'Vytvoriť účet')}</button>
         <p className="auth-switch">
-          Už máte účet? <Link to="/login" state={location.state}>Prihláste sa</Link>
+          {t('Už máte účet?')} <Link to="/login" state={location.state}>{t('Prihláste sa')}</Link>
         </p>
       </form>
     </AuthLayout>

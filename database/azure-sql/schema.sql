@@ -274,3 +274,38 @@ BEGIN
     SELECT id, status, NULL FROM dbo.applications WHERE status <> N'submitted';
 END;
 GO
+
+-- System administrators manage roles; existing HR accounts remain HR.
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_users_role'
+           AND parent_object_id=OBJECT_ID(N'dbo.users') AND definition NOT LIKE N'%sysadmin%')
+    ALTER TABLE dbo.users DROP CONSTRAINT CK_users_role;
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_users_role'
+               AND parent_object_id=OBJECT_ID(N'dbo.users'))
+    ALTER TABLE dbo.users ADD CONSTRAINT CK_users_role CHECK (role IN (N'user',N'admin',N'sysadmin'));
+GO
+IF OBJECT_ID(N'dbo.user_role_history',N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.user_role_history (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES dbo.users(id),
+        previous_role NVARCHAR(20) NOT NULL,
+        new_role NVARCHAR(20) NOT NULL,
+        changed_by INT NULL REFERENCES dbo.users(id),
+        changed_at DATETIME2(0) NOT NULL DEFAULT SYSUTCDATETIME()
+    );
+END;
+GO
+
+-- Cached HR summaries are deleted with the application and on withdrawal.
+IF OBJECT_ID(N'dbo.application_review_summaries',N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.application_review_summaries (
+        application_id INT NOT NULL PRIMARY KEY REFERENCES dbo.applications(id) ON DELETE CASCADE,
+        fingerprint CHAR(64) NOT NULL,
+        state NVARCHAR(20) NOT NULL CHECK (state IN (N'processing',N'ready',N'failed')),
+        payload_json NVARCHAR(MAX) NULL,
+        lock_token NVARCHAR(36) NULL,
+        lease_until DATETIME2 NULL
+    );
+END;
+GO

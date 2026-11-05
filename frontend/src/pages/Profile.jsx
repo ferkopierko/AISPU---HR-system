@@ -10,7 +10,7 @@ export default function Profile() {
     <>
       <header className="page-head">
         <div>
-          <span className="eyebrow">{user.role === 'admin' ? 'HR manažér' : 'Uchádzač'}</span>
+          <span className="eyebrow">{user.role === 'sysadmin' ? 'Správca systému' : user.role === 'admin' ? 'HR manažér' : 'Uchádzač'}</span>
           <h1>Môj profil</h1>
           <p className="muted">E-mail slúži na prihlásenie a nedá sa zmeniť.</p>
         </div>

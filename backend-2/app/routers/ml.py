@@ -68,6 +68,7 @@ def analyze(
         raise HTTPException(exc.status, exc.message) from exc
     try:
         job = jobs.enqueue(application_id, {"raw_text": raw, "kind": kind, "requirements": context["requirements"],
+                                           "position": context.get("position", {"requirements": context["requirements"]}),
                                            "document_sha256": hashlib.sha256(data).hexdigest()}, settings.ai_provider)
     except AnalysisTooLargeError as exc:
         raise HTTPException(413, str(exc)) from exc
@@ -107,8 +108,11 @@ def retry(application_id: ApplicationId, jobs: Annotated[JobRepository, Depends(
 def get_result(application_id: ApplicationId, repo: Annotated[AnalysisRepository, Depends(get_repository)],
                backend1: Annotated[Backend1Client, Depends(get_backend1)],
                session_cookie: Annotated[str | None, Cookie(alias=SESSION_COOKIE)] = None):
-    authorize(backend1, application_id, session_cookie)
+    context = authorize(backend1, application_id, session_cookie)
     row = repo.get_latest(application_id)
     if row is None:
         raise HTTPException(404, "Pre túto prihlášku zatiaľ nie je analýza")
+    if context.get("viewerRole") not in {"admin", "sysadmin"}:
+        row = {**row, "analysis_metadata": {key: value for key, value in row.get("analysis_metadata", {}).items()
+                                          if key != "review_summary"}}
     return row

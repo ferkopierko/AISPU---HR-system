@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { admin, ml } from '../api';
 import AnalysisDetail from '../components/AnalysisDetail';
 import {
-  IconAlert, IconBell, IconCalendar, IconChevronDown, IconDownload, IconExternal, IconEye, IconGauge, IconInbox, IconMail, IconPhone,
+  IconAlert, IconBell, IconCalendar, IconChevronDown, IconDownload, IconExternal, IconEye, IconGauge, IconInbox, IconMail, IconPhone, IconSearch,
 } from '../components/Icons';
 import { initials } from '../components/Layout';
 import ListSkeleton from '../components/ListSkeleton';
@@ -33,6 +33,7 @@ export default function AdminApplications() {
   const [refresh, setRefresh] = useState(0);
   const [retrying, setRetrying] = useState(null);
   const [previewCv, setPreviewCv] = useState(null);
+  const [query, setQuery] = useState('');
 
   // Všetky pozície do filtra (aj tie bez prihlášok) – raz pri otvorení stránky.
   useEffect(() => {
@@ -81,6 +82,8 @@ export default function AdminApplications() {
   let visible = rows ?? [];
   if (jobFilter) visible = visible.filter((r) => String(r.job.id) === jobFilter);
   if (statusFilter) visible = visible.filter((r) => r.status === statusFilter);
+  const q = query.trim().toLocaleLowerCase('sk');
+  if (q) visible = visible.filter((r) => [r.candidate.name, r.candidate.email, r.job.title].some((value) => value?.toLocaleLowerCase('sk').includes(q)));
   if (sortByScore) {
     visible = [...visible].sort((a, b) => (b.analysis?.score_percentage ?? -1) - (a.analysis?.score_percentage ?? -1));
   }
@@ -89,9 +92,8 @@ export default function AdminApplications() {
     <>
       <header className="page-head">
         <div>
-          <span className="eyebrow">HR</span>
           <h1>Prihlášky uchádzačov</h1>
-          <p className="muted">Riadok rozbalíte kliknutím. Uvidíte kontakt, CV, poznámky a výsledok analýzy.</p>
+          <p className="muted">Spoznajte skúsenosti za každou prihláškou. Všetky podklady pre váš ďalší krok nájdete tu.</p>
         </div>
       </header>
 
@@ -103,6 +105,7 @@ export default function AdminApplications() {
       </dl>
 
       <div className="toolbar">
+        <label className="search applicant-search"><IconSearch size={17} /><span className="visually-hidden">Hľadať uchádzača alebo pozíciu</span><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Meno, e-mail alebo pozícia" /></label>
         <label className="inline-field">
           <span className="visually-hidden">Pozícia</span>
           <select id="filter-job" value={jobFilter} onChange={(e) => setJobFilter(e.target.value)}>
@@ -125,14 +128,15 @@ export default function AdminApplications() {
         </label>
       </div>
       {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
-      <p className="muted ai-notice">Skóre porovnávajte v rámci rovnakej pozície a rovnakých požiadaviek. Staršie výsledky môžu používať pôvodný výpočet 60/40. O prijatí rozhoduje HR, nie model.</p>
 
+      <div className="results-heading"><h2>Zoznam prihlášok</h2><span aria-live="polite">{rows ? `${visible.length} z ${rows.length} prihlášok` : 'Načítavam…'}</span></div>
       {!rows && <ListSkeleton rows={4} />}
       {rows && visible.length === 0 && (
         <div className="empty">
           <IconInbox size={32} />
           <strong>{rows.length ? 'Žiadna prihláška nezodpovedá filtru' : 'Zatiaľ neprišla žiadna prihláška'}</strong>
-          <p>{rows.length ? 'Zmeňte pozíciu alebo stav vo filtri.' : 'Prihlášky sa tu objavia hneď, ako ich uchádzači odošlú.'}</p>
+          <p>{rows.length ? 'Skúste iné meno, pozíciu alebo stav vo filtri.' : 'Prihlášky sa tu objavia hneď, ako ich uchádzači odošlú.'}</p>
+          {rows.length > 0 && <button className="secondary" onClick={() => { setQuery(''); setJobFilter(''); setStatusFilter(''); }}>Zrušiť filtre</button>}
         </div>
       )}
       {visible.length > 0 && (

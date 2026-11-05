@@ -97,6 +97,7 @@ router.post('/:id/withdraw', requireAuth, async (req, res) => {
     `SET XACT_ABORT ON;
      BEGIN TRANSACTION;
      DELETE FROM dbo.application_cvs WHERE application_id = @id;
+     DELETE FROM dbo.application_review_summaries WHERE application_id = @id;
      UPDATE dbo.applications
      SET status = N'withdrawn', candidate_name = NULL, candidate_phone = NULL, notify_status = NULL
      OUTPUT inserted.id, inserted.status

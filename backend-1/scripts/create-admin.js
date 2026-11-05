@@ -16,7 +16,7 @@ async function main() {
   const { recordset } = await db.query(
     `MERGE dbo.users AS t
      USING (SELECT @email AS email) AS s ON t.email = s.email
-     WHEN MATCHED THEN UPDATE SET role = N'admin', password_hash = @passwordHash
+     WHEN MATCHED THEN UPDATE SET role = CASE WHEN t.role=N'sysadmin' THEN N'sysadmin' ELSE N'admin' END, password_hash = @passwordHash
      WHEN NOT MATCHED THEN INSERT (email, password_hash, role) VALUES (@email, @passwordHash, N'admin')
      OUTPUT $action AS action, inserted.id;`,
     { email, passwordHash }

@@ -1,6 +1,20 @@
 // Autorizácia podľa session: requireAuth (prihlásený) a requireRole (rola).
 
 const HttpError = require('../utils/httpError');
+const db = require('../db/azureSql');
+
+// Read current permissions on each API request: a demoted account must not keep
+// privileges through an older session (including requests forwarded by Backend 2).
+async function refreshSessionRole(req, res, next) {
+  if (req.session.userId && req.path.startsWith('/api/')) {
+    const { recordset } = await db.query('SELECT role FROM dbo.users WHERE id = @id', { id: req.session.userId });
+    if (!recordset[0]) {
+      delete req.session.userId;
+      delete req.session.role;
+    } else req.session.role = recordset[0].role;
+  }
+  next();
+}
 
 function requireAuth(req, res, next) {
   if (!req.session.userId) {
@@ -9,17 +23,17 @@ function requireAuth(req, res, next) {
   next();
 }
 
-/** @param {...('admin'|'user')} roles povolené roly */
+/** @param {...('admin'|'user'|'sysadmin')} roles povolené roly */
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.session.userId) {
       return next(new HttpError(401, 'Neprihlásený používateľ'));
     }
-    if (!roles.includes(req.session.role)) {
+    if (!roles.includes(req.session.role) && !(req.session.role === 'sysadmin' && roles.includes('admin'))) {
       return next(new HttpError(403, 'Nedostatočné oprávnenie'));
     }
     next();
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { requireAuth, requireRole, refreshSessionRole };
