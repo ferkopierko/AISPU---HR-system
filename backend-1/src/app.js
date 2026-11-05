@@ -9,6 +9,9 @@ const applicationRoutes = require('./routes/applications');
 const adminRoutes = require('./routes/admin');
 const adminJobRoutes = require('./routes/adminJobs');
 const internalRoutes = require('./routes/internal');
+const systemRoutes = require('./routes/system');
+const reviewSummaryRoutes = require('./routes/reviewSummary');
+const { refreshSessionRole } = require('./middleware/auth');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -36,6 +39,7 @@ app.use(session({
 
 // Interné API pre Backend 2 – vlastný JSON parser s vyšším limitom (CV v base64),
 // preto musí byť pred globálnym parserom.
+app.use(refreshSessionRole);
 app.use('/api/internal', internalRoutes);
 app.use(express.json({ limit: '100kb' }));
 
@@ -53,7 +57,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/admin/jobs', adminJobRoutes);
+app.use('/api/admin/applications', reviewSummaryRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/system', systemRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

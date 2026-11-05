@@ -122,7 +122,7 @@ def analyze_cv(filename: str, data: bytes, requirements: str) -> AnalysisResult:
 
 
 def analyze_text(raw_text: str, kind: str, requirements: str, *, provider: str | None = None,
-                 document_sha256: str = "", azure_client=None) -> AnalysisResult:
+                 document_sha256: str = "", azure_client=None, position: dict | None = None) -> AnalysisResult:
     from ..config import settings
     selected = provider or settings.ai_provider
     job_text, listed_items, item_weights = parse_requirements(requirements)
@@ -145,7 +145,8 @@ def analyze_text(raw_text: str, kind: str, requirements: str, *, provider: str |
         entities, model_version = (azure_client or AzureCustomNer(settings)).extract(raw_text)
     elif selected == "azure_llm":
         client = azure_client or AzureLlm(settings)
-        entities, model_version = client.extract(raw_text)
+        position = {**(position or {}), "requirements": requirements}
+        entities, model_version = client.extract(raw_text, position=position)
         metadata = getattr(client, "metadata", {})
     elif selected == "local_rules":
         rule_skills += [s for s in required if s not in rule_skills and _contains_phrase(raw_text.lower(), s)]

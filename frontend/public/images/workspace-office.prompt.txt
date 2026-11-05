@@ -1,0 +1,4 @@
+Asset: workspace-office.png
+Generator: built-in image_gen tool
+Prompt:
+Create a photorealistic editorial photograph for the background of a Slovak recruitment website. Wide landscape 3:2 composition of a real contemporary bright office workspace, natural window daylight, pale warm gray walls, a long shared oak desk, laptops, elegant forest green upholstered office chairs, a few leafy plants. Quiet professional welcoming atmosphere, authentic modest European office, no luxury styling. Camera at seated eye level with depth looking diagonally along desks toward large windows. Concentrate visual detail in right two thirds, left third lighter and uncluttered for dark text overlay. Natural colors, restrained forest green and warm wood, subtle photographic grain. No people needed, no text, no logos, no watermarks, no UI.

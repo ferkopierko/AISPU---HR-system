@@ -33,17 +33,20 @@ function optionalText(value, max) {
 router.get('/applications/:id/analysis-context', requireAuth, async (req, res) => {
   const id = parseId(req.params.id);
   const { recordset } = await db.query(
-    `SELECT a.user_id, a.job_id, j.requirements, j.description, j.title
+    `SELECT a.user_id, a.job_id, j.requirements, j.description, j.title, j.responsibilities
      FROM dbo.applications a JOIN dbo.jobs j ON j.id = a.job_id WHERE a.id = @id`, { id }
   );
   const application = recordset[0];
   if (!application) throw new HttpError(404, 'Prihláška neexistuje');
-  if (application.user_id !== req.session.userId && req.session.role !== 'admin') {
+  if (application.user_id !== req.session.userId && !['admin', 'sysadmin'].includes(req.session.role)) {
     throw new HttpError(403, 'K tejto prihláške nemáte prístup');
   }
   res.set('Cache-Control', 'private, no-store');
-  res.json({ applicationId: id, jobId: application.job_id,
-    requirements: application.requirements || application.description || application.title });
+  res.json({ applicationId: id, jobId: application.job_id, viewerRole: req.session.role,
+    requirements: application.requirements || application.description || application.title,
+    position: { title: application.title ?? '', description: application.description ?? '',
+      responsibilities: application.responsibilities ?? '',
+      requirements: application.requirements || application.description || application.title } });
 });
 
 // PUT /api/internal/applications/:id/cv

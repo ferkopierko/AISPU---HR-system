@@ -1,5 +1,6 @@
 import { IconCheck, IconX } from './Icons';
 import { ScoreRing } from './ScoreBadge';
+import ReviewSummary from './ReviewSummary';
 
 const DEGREES = { phd: 'PhD.', master: 'magisterské', bachelor: 'bakalárske', 'high school': 'stredoškolské' };
 const PROVIDERS = { azure_llm: 'Azure LLM', azure_custom_ner: 'Azure Language · Custom NER', local_rules: 'Lokálne pravidlá' };
@@ -30,6 +31,7 @@ export default function AnalysisDetail({ analysis, size = 96, forHr = false }) {
   const degree = education?.degrees?.[0];
   return (
     <div className="analysis">
+      <ReviewSummary analysis={analysis} />
       <div className="analysis-head">
         <ScoreRing value={score_percentage} size={size} />
         <div className="metrics">

@@ -21,9 +21,14 @@ test('owner or HR can read server requirements; other users cannot',async()=>{
   calls=[];rows=[{user_id:12,job_id:3,requirements:'[{"skill":"Python","weight":5}]',title:'Backend'}];
   session={userId:12,role:'user'};const headers={'X-Internal-Key':process.env.INTERNAL_API_KEY};
   let response=await fetch(url,{headers});assert.equal(response.status,200);
-  assert.equal((await response.json()).requirements,rows[0].requirements);
+  const context=await response.json();
+  assert.equal(context.requirements,rows[0].requirements);
+  assert.equal(context.position.title,'Backend');
+  assert.equal(context.position.requirements,rows[0].requirements);
+  assert.equal(context.viewerRole,'user');
   assert.equal(calls[0].params.id,7);assert.match(response.headers.get('cache-control'),/no-store/);
   session={userId:13,role:'user'};assert.equal((await fetch(url,{headers})).status,403);
   session={userId:13,role:'admin'};assert.equal((await fetch(url,{headers})).status,200);
+  session={userId:13,role:'sysadmin'};assert.equal((await fetch(url,{headers})).status,200);
   rows=[];assert.equal((await fetch(url,{headers})).status,404);
 });

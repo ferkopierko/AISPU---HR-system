@@ -9,6 +9,7 @@ import MyApplications from './pages/MyApplications';
 import Profile from './pages/Profile';
 import AdminApplications from './pages/AdminApplications';
 import AdminJobs from './pages/AdminJobs';
+import SystemUsers from './pages/SystemUsers';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         {/* Obrazovka 2 – HR dashboard a správa pozícií, iba rola admin */}
         <Route path="/admin" element={<RequireRole role="admin"><AdminApplications /></RequireRole>} />
         <Route path="/admin/jobs" element={<RequireRole role="admin"><AdminJobs /></RequireRole>} />
+        <Route path="/admin/users" element={<RequireRole role="sysadmin"><SystemUsers /></RequireRole>} />
         <Route path="*" element={<p>Stránka neexistuje.</p>} />
       </Route>
     </Routes>

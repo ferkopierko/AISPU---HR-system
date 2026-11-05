@@ -96,6 +96,19 @@ def test_submit_queue_and_get_result(client,components,cv_pdf):
     assert client.get('/api/ml/status/7').json()['state']=='completed'
 
 
+def test_joint_summary_is_visible_only_to_hr(client,components,cv_pdf):
+    repo,jobs,b1=components
+    post(client,cv_pdf)
+    jobs.finish(repo,7)
+    summary={"lines":["one","two","three","four"],"usage_scope":"shared_analysis"}
+    repo.rows[7]['analysis_metadata']['review_summary']=summary
+    assert 'review_summary' not in client.get('/api/ml/results/7').json()['analysis_metadata']
+    assert repo.rows[7]['analysis_metadata']['review_summary']==summary
+    original_context=b1.analysis_context
+    b1.analysis_context=lambda app_id,cookie:{**original_context(app_id,cookie),'viewerRole':'admin'}
+    assert client.get('/api/ml/results/7').json()['analysis_metadata']['review_summary']==summary
+
+
 def test_duplicate_submit_and_retry_do_not_create_application_or_replace_cv(client,components,cv_pdf):
     repo,jobs,b1=components
     assert post(client,cv_pdf).status_code==202

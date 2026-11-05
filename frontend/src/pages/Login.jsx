@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { usePreferences } from '../preferences';
 import AuthLayout from '../components/AuthLayout';
 import { IconAlert } from '../components/Icons';
 import { homePath } from '../components/RequireRole';
 
 export default function Login() {
   const { user, login } = useAuth();
+  const { t, language } = usePreferences();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +25,7 @@ export default function Login() {
     try {
       await login(email, password);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof TypeError ? 'Nepodarilo sa pripojiť. Skúste to znova.' : err.message);
       setBusy(false);
     }
   }
@@ -32,27 +34,27 @@ export default function Login() {
     <AuthLayout>
       <form className="form" onSubmit={handleSubmit}>
         <header>
-          <h2>Prihlásenie</h2>
-          <p className="muted">Uchádzači aj HR manažéri sa prihlasujú rovnako.</p>
+          <h2>{t('Prihlásenie')}</h2>
+          <p className="muted">{t('Vitajte späť. Prihláste sa do svojho účtu.')}</p>
         </header>
         <label>
-          E-mail
+          {t('E-mail')}
           <input
             id="login-email" type="email" autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} placeholder="meno@firma.sk" required autoFocus
+            onChange={(e) => setEmail(e.target.value)} placeholder={language === 'en' ? 'name@company.com' : 'meno@firma.sk'} required
           />
         </label>
         <label>
-          Heslo
+          {t('Heslo')}
           <input
             id="login-password" type="password" autoComplete="current-password" value={password}
             onChange={(e) => setPassword(e.target.value)} required
           />
         </label>
-        {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
-        <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{busy ? 'Prihlasujem…' : 'Prihlásiť sa'}</button>
+        {error && <p className="error" role="alert"><IconAlert size={16} />{t(error)}</p>}
+        <button type="submit" disabled={busy}>{busy && <span className="spinner" />}{t(busy ? 'Prihlasujem…' : 'Prihlásiť sa')}</button>
         <p className="auth-switch">
-          Ešte nemáte účet? <Link to="/register" state={location.state}>Zaregistrujte sa</Link>
+          {t('Ešte nemáte účet?')} <Link to="/register" state={location.state}>{t('Zaregistrujte sa')}</Link>
         </p>
       </form>
     </AuthLayout>

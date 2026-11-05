@@ -60,7 +60,6 @@ export default function AdminJobs() {
     <>
       <header className="page-head">
         <div>
-          <span className="eyebrow">HR</span>
           <h1>Správa pozícií</h1>
           <p className="muted">Koncepty a uzavreté pozície vidíte len vy. Uchádzači vidia iba otvorené pozície pred uzávierkou.</p>
         </div>
@@ -72,6 +71,11 @@ export default function AdminJobs() {
       {notice && <p className="success notice" role="status"><IconCheck size={16} />{notice}</p>}
       {error && <p className="error" role="alert"><IconAlert size={16} />{error}</p>}
       {!jobs && !error && <ListSkeleton rows={4} />}
+      {jobs && <div className="position-summary" aria-label="Prehľad pozícií">
+        <span><span className="summary-dot open" />Otvorené: {jobs.filter((job) => job.status === 'open' && !(daysLeft(job.deadline) < 0)).length}</span>
+        <span><span className="summary-dot" />Koncepty: {jobs.filter((job) => job.status === 'draft').length}</span>
+        <span><IconArchive size={15} />Uzavreté alebo po uzávierke: {jobs.filter((job) => job.status === 'closed' || (job.status === 'open' && daysLeft(job.deadline) < 0)).length}</span>
+      </div>}
 
       {jobs?.length === 0 && (
         <div className="empty">

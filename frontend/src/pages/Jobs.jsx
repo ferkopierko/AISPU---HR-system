@@ -31,10 +31,13 @@ export default function Jobs() {
     <>
       <header className="page-head jobs-head">
         <div>
-          <span className="eyebrow">Otvorené pozície</span>
-          <h1>{jobs ? positionsTitle(jobs.length) : 'Pozície'}</h1>
-          <p className="muted">Pri každej pozícii vidíte požadované zručnosti. Po odoslaní CV hneď uvidíte, ktoré z nich sa v ňom našli.</p>
+          <h1>Nájdite svoje ďalšie miesto.</h1>
+          <p className="muted">Nové prostredie. Nové možnosti. Objavte prácu, v ktorej využijete to, čo viete.</p>
+          <span className="positions-count">{jobs ? positionsTitle(jobs.length) : 'Načítavam ponuky…'}</span>
         </div>
+      </header>
+      <div className="jobs-searchbar">
+        <h2>Objavte otvorené ponuky</h2>
         <label className="search">
           <IconSearch size={16} />
           <span className="visually-hidden">Hľadať pozíciu</span>
@@ -43,7 +46,7 @@ export default function Jobs() {
             placeholder="Názov, zručnosť alebo mesto"
           />
         </label>
-      </header>
+      </div>
 
       {error && <p className="error" role="alert">{error}</p>}
       {!jobs && !error && <ListSkeleton rows={3} />}
@@ -71,7 +74,7 @@ export default function Jobs() {
               {jobs.length > 0 && <button className="secondary btn-sm" onClick={() => { setQuery(''); setDept(''); }}>Zrušiť hľadanie</button>}
             </div>
           ) : (
-            <ul className="row-list">
+            <ul className="row-list job-catalog">
               {visible.map((job) => {
                 const salary = formatSalary(job);
                 return (

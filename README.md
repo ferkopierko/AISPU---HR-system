@@ -1,5 +1,8 @@
 # SmartRecruit AI – HR systém
 
+**Roly a správa účtov:** uchádzač, HR manažér a správca systému. Správca prideľuje
+roly na `/admin/users`; postup vytvorenia prvého správcu je v [návode](docs/pouzivatelske-roly.md).
+
 **Nasadené:** <https://hr-frontend-frantisek.azurewebsites.net> – frontend aj oba backendy na Azure
 App Service (F1), Backend 1 s Azure SQL, dáta Backendu 2 vo Firebase Firestore.
 Pozri [docs/azure-nasadenie.md](docs/azure-nasadenie.md).
@@ -13,6 +16,10 @@ Online konfigurácia, migrácia dát a lokálny emulátor sú v [docs/firebase.m
 Základné Docker spustenie nižšie zachováva pôvodnú MySQL, kým nie je pripojený Firebase projekt.
 
 **Azure LLM bez vlastného tréningu:** pripravené je aj pripojenie nasadenia `gpt-4.1-mini` cez Responses API. Pozri [docs/faza-5-azure-llm.md](docs/faza-5-azure-llm.md). Výber je `AI_PROVIDER=azure_llm`; model extrahuje zručnosti a citácie, skóre stále počíta aplikácia.
+
+**Zhrnutie pre HR:** nové Azure LLM analýzy posielajú aj celý opis pozície a vrátia
+štyri vety spolu so zručnosťami v jednom volaní. Otvorenie uloženého zhrnutia
+nespotrebuje ďalšie tokeny. Podrobnosti a režim starších analýz sú v [návode](docs/ai-zhrnutie.md).
 
 **Lokálna Azure integrácia:** pozri [návod na Azure Custom NER](docs/faza-4-azure-ner.md).
 Predvolene ostávajú `local_rules`, kým nie je nastavené Azure pripojenie.

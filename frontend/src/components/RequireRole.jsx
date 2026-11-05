@@ -3,7 +3,8 @@ import { useAuth } from '../auth';
 
 /** Kam poslať prihláseného: späť na stránku, odkiaľ prišiel (ak ju jeho rola smie vidieť), inak domov. */
 export function homePath(user, from) {
-  if (user.role === 'admin') return from?.startsWith('/admin') || from === '/profile' ? from : '/admin';
+  if (user.role === 'sysadmin') return from?.startsWith('/admin') || from === '/profile' ? from : '/admin/users';
+  if (user.role === 'admin') return (from?.startsWith('/admin') && from !== '/admin/users') || from === '/profile' ? from : '/admin';
   return from && !from.startsWith('/admin') ? from : '/jobs';
 }
 
@@ -14,6 +15,6 @@ export default function RequireRole({ role, children }) {
 
   if (loading) return <div className="loading"><span className="spinner dark" /> Načítavam…</div>;
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  if (role && user.role !== role) return <p className="error">Na túto stránku nemáte oprávnenie.</p>;
+  if (role && user.role !== role && !(role === 'admin' && user.role === 'sysadmin')) return <p className="error">Na túto stránku nemáte oprávnenie.</p>;
   return children;
 }
