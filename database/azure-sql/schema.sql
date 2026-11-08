@@ -309,3 +309,22 @@ BEGIN
     );
 END;
 GO
+
+-- ---------------------------------------------------------------------
+-- sessions – prihlásenia (express-session) pre portál uchádzača aj HR portál.
+-- Uložené v DB, aby prežili reštart Backendu 1 a zdieľali ich všetky inštancie.
+-- Exspirované riadky maže Backend 1 každých 15 minút (src/db/sessionStore.js).
+-- ---------------------------------------------------------------------
+IF OBJECT_ID(N'dbo.sessions', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.sessions (
+        sid     NVARCHAR(255) NOT NULL,
+        session NVARCHAR(MAX) NOT NULL,   -- JSON: userId, role, clientApp, cookie
+        expires DATETIME2(0)  NOT NULL,   -- UTC
+
+        CONSTRAINT PK_sessions PRIMARY KEY (sid)
+    );
+
+    CREATE INDEX IX_sessions_expires ON dbo.sessions (expires);
+END;
+GO

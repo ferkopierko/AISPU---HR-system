@@ -13,7 +13,9 @@ export class ApiError extends Error {
 async function request(path, { method = 'GET', body, form } = {}) {
   const res = await fetch(path, {
     method,
-    credentials: 'include', // posiela session cookie hr.sid
+    // posiela session cookie portálu (sr.candidate.sid / sr.hr.sid); hlavičku X-Client-App
+    // pridá nginx (Docker), Vite proxy (vývoj) alebo azure/server.js – prehliadač ju neposiela
+    credentials: 'include',
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: form ?? (body ? JSON.stringify(body) : undefined),
   });

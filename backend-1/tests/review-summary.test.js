@@ -22,7 +22,7 @@ before(async () => {
   await new Promise(resolve=>{server=app.listen(0,'127.0.0.1',resolve);});
   url=`http://127.0.0.1:${server.address().port}/api/admin/applications/7/summary`;
 });
-beforeEach(()=>{session={userId:1,role:'admin'};calls=[];remoteStatus=200;embedded=null;});
+beforeEach(()=>{session={userId:1,role:'admin',clientApp:'hr'};calls=[];remoteStatus=200;embedded=null;});
 after(async()=>{global.fetch=nativeFetch;await new Promise(resolve=>server.close(resolve));});
 test('only HR and system administrators can read or generate summaries',async()=>{
   for(const state of [{}, {userId:2,role:'user'}]) {
@@ -30,8 +30,15 @@ test('only HR and system administrators can read or generate summaries',async()=
     for(const method of ['GET','POST']) assert.equal((await nativeFetch(url,{method})).status,state.userId?403:401);
   }
   assert.equal(calls.length,0);
-  session={userId:1,role:'sysadmin'};
+  session={userId:1,role:'sysadmin',clientApp:'hr'};
   assert.equal((await nativeFetch(url)).status,200);
+});
+test('HR role works only with a session from the HR portal',async()=>{
+  for(const clientApp of [undefined,'candidate']) {
+    session={userId:1,role:'admin',clientApp};
+    assert.equal((await nativeFetch(url)).status,403);
+  }
+  assert.equal(calls.length,0);
 });
 test('existing result is reused without a model generation request',async()=>{
   const response=await nativeFetch(url,{method:'POST'});

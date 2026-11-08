@@ -23,6 +23,8 @@ function requireAuth(req, res, next) {
   next();
 }
 
+const STAFF_ROLES = ['admin', 'sysadmin'];
+
 /** @param {...('admin'|'user'|'sysadmin')} roles povolené roly */
 function requireRole(...roles) {
   return (req, res, next) => {
@@ -31,6 +33,10 @@ function requireRole(...roles) {
     }
     if (!roles.includes(req.session.role) && !(req.session.role === 'sysadmin' && roles.includes('admin'))) {
       return next(new HttpError(403, 'Nedostatočné oprávnenie'));
+    }
+    // HR a správa systému iba so session z HR portálu (aj keby rolu povýšili uchádzačovi počas session)
+    if (roles.some((role) => STAFF_ROLES.includes(role)) && req.session.clientApp !== 'hr') {
+      return next(new HttpError(403, 'Táto časť je dostupná iba v HR portáli'));
     }
     next();
   };

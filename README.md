@@ -51,7 +51,22 @@ Vyžaduje Docker s Docker Compose.
    docker compose -f docker-compose.yml up -d --build
    ```
 
-4. Otvor [localhost:5173](http://localhost:5173).
+4. Otvor portál, ktorý potrebuješ:
+
+   | Portál | Adresa |
+   |---|---|
+   | Portál uchádzača | [localhost:5173](http://localhost:5173) |
+   | HR portál | [localhost:5174](http://localhost:5174) |
+
+### Dva frontendy a sessions
+
+Uchádzači a HR pracujú v dvoch samostatných aplikáciách v kontajneroch `frontend` a
+`frontend-hr`. Sú zostavené z toho istého kódu (`frontend/`, `VITE_APP=candidate|hr`)
+a volajú tie isté backendy. Každý portál posiela hlavičku `X-Client-App`, podľa ktorej
+Backend 1 používa vlastnú cookie (`sr.candidate.sid`, `sr.hr.sid`). V jednom prehliadači
+tak môže byť prihlásený uchádzač aj HR naraz. Do HR portálu sa prihlási iba HR účet.
+Sessions sú uložené v SQL Serveri (`dbo.sessions`), takže prežijú reštart Backendu 1.
+Podrobnosti: [docs/frontendy-a-sessions.md](docs/frontendy-a-sessions.md).
 
 ### Testovacie účty
 
@@ -59,8 +74,8 @@ Vyžaduje Docker s Docker Compose.
 
 | Rola | E-mail | Heslo |
 |---|---|---|
-| HR manažér | `hr@firma.sk` | `Admin1234` |
-| Uchádzač | `jan@test.sk` | `Heslo1234` |
+| HR manažér (HR portál :5174) | `hr@firma.sk` | `Admin1234` |
+| Uchádzač (portál :5173) | `jan@test.sk` | `Heslo1234` |
 
 Existujúci účet možno povýšiť na správcu systému:
 
@@ -74,6 +89,7 @@ Vzorové životopisy sú v [sample-data/cv](sample-data/cv/).
 ## Dokumentácia
 
 - [Používateľské roly](docs/pouzivatelske-roly.md)
+- [Dva frontendy a sessions](docs/frontendy-a-sessions.md)
 - [Firebase SQL Connect / PostgreSQL](docs/sqlconnect.md)
 - [Cloud Firestore](docs/firebase.md)
 - [Nasadenie na Azure](docs/azure-nasadenie.md)

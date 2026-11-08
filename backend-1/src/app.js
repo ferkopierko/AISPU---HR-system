@@ -1,5 +1,4 @@
 const express = require('express');
-const session = require('express-session');
 const cors = require('cors');
 const config = require('./config/env');
 const db = require('./db/azureSql');
@@ -12,6 +11,7 @@ const internalRoutes = require('./routes/internal');
 const systemRoutes = require('./routes/system');
 const reviewSummaryRoutes = require('./routes/reviewSummary');
 const { refreshSessionRole } = require('./middleware/auth');
+const { portalSession } = require('./middleware/session');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -24,18 +24,8 @@ app.use(cors({
   origin: config.corsOrigin,
   credentials: true, // povoliť session cookie z frontendu
 }));
-app.use(session({
-  name: 'hr.sid',
-  secret: config.sessionSecret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: config.isProduction,
-    maxAge: 1000 * 60 * 60 * 8, // 8 hodín
-  },
-}));
+// Session podľa portálu (X-Client-App), uložená v dbo.sessions – pozri middleware/session.js.
+app.use(portalSession);
 
 // Interné API pre Backend 2 – vlastný JSON parser s vyšším limitom (CV v base64),
 // preto musí byť pred globálnym parserom.

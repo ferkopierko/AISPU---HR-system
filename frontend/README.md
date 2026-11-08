@@ -7,7 +7,7 @@ React 18 + Vite 5 + React Router. Spája oba backendy:
 | `/api/auth/*`, `/api/jobs/*`, `/api/applications`, `/api/admin/*` | **Backend 1** (Node.js, port 3001) |
 | `/api/ml/*` | **Backend 2** (Python, port 8000) |
 
-Vo vývoji to presmeruje Vite proxy (`vite.config.js`), v Dockeri nginx (`nginx.conf`).
+Vo vývoji to presmeruje Vite proxy (`vite.config.js`), v Dockeri nginx (`nginx.candidate.conf`, `nginx.hr.conf`).
 Vďaka tomu je všetko na jednej adrese a session cookie z Backendu 1 funguje bez problémov s CORS.
 
 ## Spustenie
@@ -16,7 +16,8 @@ Vďaka tomu je všetko na jednej adrese a session cookie z Backendu 1 funguje be
 # najprv spusti Backend 1 (3001) a Backend 2 (8000) podľa hlavného README
 cd frontend
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # portál uchádzača, http://localhost:5173
+npm run dev:hr     # HR portál, http://localhost:5174
 ```
 
 ## Obrazovky
@@ -34,14 +35,17 @@ npm run dev        # http://localhost:5173
 src/
 ├── api.js                 – všetky volania oboch backendov
 ├── auth.jsx               – prihlásený používateľ (React context)
-├── App.jsx                – routy
+├── main.jsx               – vyberie portál podľa VITE_APP
+├── apps/                  – CandidateApp, HrApp (routy a navigácia portálov)
+├── portal.js              – ktorý portál beží, adresy oboch portálov
 ├── components/            – Layout (horná lišta), RequireRole, ScoreBadge, AnalysisDetail
 └── pages/                 – Login, Register, Jobs, JobDetail, AdminApplications
 ```
 
 ## Docker
 
-`Dockerfile` zostaví aplikáciu a servíruje ju cez nginx na porte 80. `nginx.conf` predpokladá,
+`Dockerfile` zostaví portál podľa build-argumentu `APP` (`candidate` / `hr`) a servíruje ho cez nginx
+na porte 80 (podrobnosti v [docs/frontendy-a-sessions.md](../docs/frontendy-a-sessions.md)). `nginx.*.conf` predpokladá,
 že služby v `docker-compose.yml` sa volajú `backend-1` a `backend-2`.
 
 ## Čo zatiaľ chýba vo frontende

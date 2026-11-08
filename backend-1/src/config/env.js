@@ -26,7 +26,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 module.exports = Object.freeze({
   isProduction,
   port: Number(process.env.BACKEND1_PORT) || 3001,
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  // viac adries oddelených čiarkou (portál uchádzača aj HR portál), rovnako ako v Backende 2
+  corsOrigin: (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174')
+    .split(',').map((origin) => origin.trim()).filter(Boolean),
   sessionSecret: process.env.SESSION_SECRET,
   // Spoločný kľúč s Backendom 2 pre /api/internal/* (odovzdanie CV).
   // Ak nie je nastavený, interné endpointy vracajú 503.

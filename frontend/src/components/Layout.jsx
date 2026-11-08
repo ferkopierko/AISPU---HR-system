@@ -3,9 +3,18 @@ import { useLayoutEffect } from 'react';
 import { usePreferences } from '../preferences';
 import DisplayPreferences from './DisplayPreferences';
 import { useAuth } from '../auth';
-import { IconBriefcase, IconFile, IconInbox, IconLogOut, IconUser, IconUsers } from './Icons';
+import { IconLogOut } from './Icons';
 
-export default function Layout() {
+/**
+ * Rám stránky spoločný pre oba portály. Navigáciu dodá každá aplikácia sama (apps/CandidateApp, apps/HrApp):
+ * @param {string} home          kam vedie logo
+ * @param {string} [brandSuffix] doplnok názvu v hlavičke („HR“ v HR portáli)
+ * @param {string} workspaceLabel nadpis bočného panela pre prihláseného
+ * @param {(user) => React.ReactNode} nav  odkazy v bočnom paneli pre prihláseného
+ * @param {React.ReactNode} [publicNav]    odkazy v hlavičke pre neprihláseného
+ * @param {Array<[string, string]>} sections  [začiatok cesty, názov] pre drobčekovú navigáciu, prvá zhoda vyhráva
+ */
+export default function Layout({ home, brandSuffix, workspaceLabel, nav, publicNav, sections }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -14,35 +23,29 @@ export default function Layout() {
   const text = (value) => isAuthPage ? t(value) : value;
   useLayoutEffect(() => { document.documentElement.lang = isAuthPage ? language : 'sk'; }, [isAuthPage, language]);
   const workspace = !!user;
-  const isStaff = ['admin', 'sysadmin'].includes(user?.role);
   const roleLabel = user?.role === 'sysadmin' ? 'Správca systému' : user?.role === 'admin' ? 'HR manažér' : 'Uchádzač';
-  const section = pathname.startsWith('/admin/users') ? 'Správa používateľov' : pathname.startsWith('/admin/jobs') ? 'Správa pozícií' : pathname.startsWith('/admin') ? 'Prihlášky' : pathname === '/my' ? 'Moje prihlášky' : pathname === '/profile' ? 'Môj profil' : 'Pracovné príležitosti';
+  const section = sections.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1] ?? sections.at(-1)[1];
 
   async function handleLogout() {
     await logout();
     navigate('/login');
   }
 
+  const brand = (
+    <>Smart<span className="brand-accent">Recruit</span>{brandSuffix && <> {brandSuffix}</>}</>
+  );
+
   return (
     <div className={workspace ? 'app-shell workspace-shell' : 'app-shell public-shell'}>
       <a href="#main-content" className="skip-link">{text('Preskočiť na obsah')}</a>
       {workspace && (
         <aside className="sidebar">
-          <Link to={isStaff ? '/admin' : '/jobs'} className="brand sidebar-brand">
-            <span>Smart<span className="brand-accent">Recruit</span><small>Ľudia na správnom mieste.</small></span>
+          <Link to={home} className="brand sidebar-brand">
+            <span>{brand}<small>Ľudia na správnom mieste.</small></span>
           </Link>
-          <div className="workspace-label"><span className="workspace-dot" />{isStaff ? 'HR pracovný priestor' : 'Môj pracovný priestor'}</div>
+          <div className="workspace-label"><span className="workspace-dot" />{workspaceLabel}</div>
           <nav className="side-nav" aria-label="Hlavná navigácia">
-            {isStaff ? <>
-              <NavLink to="/admin" end><IconUsers />Prihlášky</NavLink>
-              <NavLink to="/admin/jobs"><IconBriefcase />Správa pozícií</NavLink>
-              <NavLink to="/jobs"><IconInbox />Verejné ponuky</NavLink>
-              {user.role === 'sysadmin' && <NavLink to="/admin/users"><IconUser />Správa používateľov</NavLink>}
-            </> : <>
-              <NavLink to="/jobs"><IconBriefcase />Pracovné ponuky</NavLink>
-              <NavLink to="/my"><IconFile />Moje prihlášky</NavLink>
-            </>}
-            <NavLink to="/profile"><IconUser />Môj profil</NavLink>
+            {nav(user)}
           </nav>
           <div className="sidebar-bottom">SmartRecruit AI<span>AISPU {new Date().getFullYear()}</span></div>
         </aside>
@@ -51,12 +54,8 @@ export default function Layout() {
       <header className="topbar">
         <div className="topbar-inner">
           {workspace ? <div className="breadcrumb"><span>Pracovný priestor</span><span aria-hidden="true">/</span><strong>{section}</strong></div> : <>
-          <Link to="/" className="brand">
-            Smart<span className="brand-accent">Recruit</span>
-          </Link>
-          <nav className="nav" aria-label={text('Hlavná navigácia')}>
-            <NavLink to="/jobs">{text('Pozície')}</NavLink>
-          </nav>
+          <Link to={home} className="brand">{brand}</Link>
+          {publicNav && <nav className="nav" aria-label={text('Hlavná navigácia')}>{publicNav(text)}</nav>}
           </>}
           <div className="user">
             <DisplayPreferences languageSwitch={isAuthPage} />
@@ -76,9 +75,7 @@ export default function Layout() {
                 </button>
               </>
             ) : (
-              <>
-                <Link to="/login" className="btn btn-sm secondary">{text('Prihlásiť sa')}</Link>
-              </>
+              <Link to="/login" className="btn btn-sm secondary">{text('Prihlásiť sa')}</Link>
             )}
           </div>
         </div>
@@ -87,12 +84,17 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="footer">
-        <span>SmartRecruit AI</span>
+        <span>SmartRecruit AI{brandSuffix && ` ${brandSuffix}`}</span>
         <span>{text('Tímový projekt AISPU')} {new Date().getFullYear()}</span>
       </footer>
       </div>
     </div>
   );
+}
+
+/** Odkaz v bočnom paneli (rovnaký vzhľad v oboch portáloch). */
+export function SideLink({ to, icon: Icon, end, children }) {
+  return <NavLink to={to} end={end}><Icon />{children}</NavLink>;
 }
 
 /** Iniciály z mena („Ján Novák“ -> JN) alebo z e-mailu (jan.novak@… -> JN). */
