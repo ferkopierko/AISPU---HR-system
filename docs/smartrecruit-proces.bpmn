@@ -5,147 +5,204 @@
     <participant id="Participant_Uchadzac" name="Uchádzač" processRef="Process_Uchadzac" />
     <participant id="Participant_System" name="SmartRecruit AI – HR systém" processRef="Process_System" />
     <messageFlow id="MsgFlow_1" name="Požiadavka na otvorenie aplikácie" sourceRef="A1" targetRef="S_W" />
-    <messageFlow id="MsgFlow_2" name="Registračné údaje" sourceRef="A3" targetRef="W2" />
-    <messageFlow id="MsgFlow_3" name="Prihlasovacie údaje" sourceRef="A4" targetRef="W5" />
-    <messageFlow id="MsgFlow_4" name="Zoznam pozícií" sourceRef="W9" targetRef="A5" />
-    <messageFlow id="MsgFlow_5" name="Prihláška s CV a súhlasom" sourceRef="A11" targetRef="W10" />
-    <messageFlow id="MsgFlow_6" name="Výsledok a skóre zhody" sourceRef="W14" targetRef="A12" />
-    <messageFlow id="MsgFlow_7" name="Požiadavka na odhlásenie" sourceRef="A13" targetRef="W18" />
-    <messageFlow id="MsgFlow_8" name="Rozhodnutie o prihláške" sourceRef="H14" targetRef="C_A" />
-    <textAnnotation id="Note_HRLogin">
-      <text>Prihlásenie HR používa rovnaké kroky ako prihlásenie uchádzača (overenie údajov, session, rola admin).</text>
-    </textAnnotation>
-    <association id="Assoc_HRLogin" associationDirection="None" sourceRef="H1" targetRef="Note_HRLogin" />
+    <messageFlow id="MsgFlow_2" name="Zoznam pozícií" sourceRef="W2" targetRef="A2" />
+    <messageFlow id="MsgFlow_3" name="Výber pozície" sourceRef="A3" targetRef="W3" />
+    <messageFlow id="MsgFlow_4" name="Detail pozície" sourceRef="W4" targetRef="A4" />
+    <messageFlow id="MsgFlow_5" name="Prihlasovacie údaje" sourceRef="A10" targetRef="W9" />
+    <messageFlow id="MsgFlow_6" name="Registračné údaje" sourceRef="A9" targetRef="W5" />
+    <messageFlow id="MsgFlow_7" name="Prihláška s CV a súhlasom" sourceRef="A11" targetRef="W11" />
+    <messageFlow id="MsgFlow_8" name="Skóre zhody a zručnosti" sourceRef="W17" targetRef="C_ok" />
+    <messageFlow id="MsgFlow_9" name="Chybová hláška" sourceRef="Werr" targetRef="C_err" />
+    <messageFlow id="MsgFlow_10" name="Požiadavka na odhlásenie" sourceRef="A13" targetRef="W18" />
+    <messageFlow id="MsgFlow_11" name="Notifikácia o rozhodnutí" sourceRef="W27" targetRef="C_N" />
   </collaboration>
   <process id="Process_Uchadzac" name="Proces uchádzača" isExecutable="false">
-    <startEvent id="S_A" name="Uchádzač chce podať prihlášku">
+    <startEvent id="S_A" name="Uchádzač hľadá prácu">
       <outgoing>Flow_S_A_A1</outgoing>
     </startEvent>
     <userTask id="A1" name="Otvoriť aplikáciu">
       <incoming>Flow_S_A_A1</incoming>
-      <outgoing>Flow_A1_GW_A1</outgoing>
+      <outgoing>Flow_A1_A2</outgoing>
     </userTask>
-    <exclusiveGateway id="GW_A1" name="Má už účet?">
-      <incoming>Flow_A1_GW_A1</incoming>
-      <outgoing>Flow_GW_A1_A2</outgoing>
-      <outgoing>Flow_GW_A1_GW_A1m</outgoing>
-    </exclusiveGateway>
-    <userTask id="A2" name="Zaregistrovať sa">
-      <incoming>Flow_GW_A1_A2</incoming>
+    <userTask id="A2" name="Prezrieť zoznam pozícií">
+      <incoming>Flow_A1_A2</incoming>
       <outgoing>Flow_A2_A3</outgoing>
     </userTask>
-    <userTask id="A3" name="Zadať e-mail a heslo">
+    <userTask id="A3" name="Otvoriť detail pozície">
       <incoming>Flow_A2_A3</incoming>
-      <outgoing>Flow_A3_GW_A1m</outgoing>
+      <outgoing>Flow_A3_A4</outgoing>
     </userTask>
-    <exclusiveGateway id="GW_A1m">
-      <incoming>Flow_A3_GW_A1m</incoming>
-      <incoming>Flow_GW_A1_GW_A1m</incoming>
-      <outgoing>Flow_GW_A1m_A4</outgoing>
-    </exclusiveGateway>
-    <userTask id="A4" name="Prihlásiť sa">
-      <incoming>Flow_GW_A1m_A4</incoming>
+    <userTask id="A4" name="Prečítať požiadavky pozície">
+      <incoming>Flow_A3_A4</incoming>
       <outgoing>Flow_A4_A5</outgoing>
     </userTask>
-    <userTask id="A5" name="Prezrieť zoznam pozícií">
+    <userTask id="A5" name="Rozhodnúť sa pre prihlášku">
       <incoming>Flow_A4_A5</incoming>
-      <outgoing>Flow_A5_A6</outgoing>
+      <outgoing>Flow_A5_GW_A5</outgoing>
     </userTask>
-    <userTask id="A6" name="Otvoriť detail pozície">
-      <incoming>Flow_A5_A6</incoming>
-      <outgoing>Flow_A6_A7</outgoing>
-    </userTask>
-    <userTask id="A7" name="Prečítať požiadavky pozície">
-      <incoming>Flow_A6_A7</incoming>
-      <outgoing>Flow_A7_A8</outgoing>
-    </userTask>
-    <userTask id="A8" name="Rozhodnúť sa pre prihlášku">
-      <incoming>Flow_A7_A8</incoming>
-      <outgoing>Flow_A8_GW_A8</outgoing>
-    </userTask>
-    <exclusiveGateway id="GW_A8" name="Prihlásiť sa na pozíciu?">
-      <incoming>Flow_A8_GW_A8</incoming>
-      <outgoing>Flow_GW_A8_E_A1</outgoing>
-      <outgoing>Flow_GW_A8_A9</outgoing>
+    <exclusiveGateway id="GW_A5" name="Prihlásiť sa na pozíciu?">
+      <incoming>Flow_A5_GW_A5</incoming>
+      <outgoing>Flow_GW_A5_E_A1</outgoing>
+      <outgoing>Flow_GW_A5_GW_A7</outgoing>
     </exclusiveGateway>
     <endEvent id="E_A1" name="Uchádzač odišiel">
-      <incoming>Flow_GW_A8_E_A1</incoming>
+      <incoming>Flow_GW_A5_E_A1</incoming>
     </endEvent>
-    <userTask id="A9" name="Nahrať CV (PDF/DOCX, max. 5 MB)">
-      <incoming>Flow_GW_A8_A9</incoming>
-      <outgoing>Flow_A9_A10</outgoing>
+    <exclusiveGateway id="GW_A7" name="Je prihlásený?">
+      <incoming>Flow_GW_A5_GW_A7</incoming>
+      <outgoing>Flow_GW_A7_GW_A8</outgoing>
+      <outgoing>Flow_GW_A7_GW_Am2</outgoing>
+    </exclusiveGateway>
+    <exclusiveGateway id="GW_A8" name="Má už účet?">
+      <incoming>Flow_GW_A7_GW_A8</incoming>
+      <outgoing>Flow_GW_A8_A8</outgoing>
+      <outgoing>Flow_GW_A8_A10</outgoing>
+    </exclusiveGateway>
+    <userTask id="A8" name="Zaregistrovať sa">
+      <incoming>Flow_GW_A8_A8</incoming>
+      <outgoing>Flow_A8_A9</outgoing>
     </userTask>
-    <userTask id="A10" name="Potvrdiť GDPR súhlas">
-      <incoming>Flow_A9_A10</incoming>
-      <outgoing>Flow_A10_A11</outgoing>
+    <userTask id="A9" name="Zadať e-mail a heslo (registrácia)">
+      <incoming>Flow_A8_A9</incoming>
+      <outgoing>Flow_A9_GW_Am</outgoing>
+    </userTask>
+    <userTask id="A10" name="Prihlásiť sa (e-mail a heslo)">
+      <incoming>Flow_GW_A8_A10</incoming>
+      <outgoing>Flow_A10_GW_Am</outgoing>
+    </userTask>
+    <exclusiveGateway id="GW_Am">
+      <incoming>Flow_A9_GW_Am</incoming>
+      <incoming>Flow_A10_GW_Am</incoming>
+      <outgoing>Flow_GW_Am_GW_Am2</outgoing>
+    </exclusiveGateway>
+    <exclusiveGateway id="GW_Am2">
+      <incoming>Flow_GW_A7_GW_Am2</incoming>
+      <incoming>Flow_GW_Am_GW_Am2</incoming>
+      <outgoing>Flow_GW_Am2_A6</outgoing>
+    </exclusiveGateway>
+    <userTask id="A6" name="Nahrať CV (PDF/DOCX, max. 5 MB)">
+      <incoming>Flow_GW_Am2_A6</incoming>
+      <outgoing>Flow_A6_A7</outgoing>
+    </userTask>
+    <userTask id="A7" name="Potvrdiť GDPR súhlas">
+      <incoming>Flow_A6_A7</incoming>
+      <outgoing>Flow_A7_A11</outgoing>
     </userTask>
     <sendTask id="A11" name="Odoslať prihlášku">
-      <incoming>Flow_A10_A11</incoming>
-      <outgoing>Flow_A11_A12</outgoing>
+      <incoming>Flow_A7_A11</incoming>
+      <outgoing>Flow_A11_GW_ev</outgoing>
     </sendTask>
+    <eventBasedGateway id="GW_ev" name="Odpoveď systému">
+      <incoming>Flow_A11_GW_ev</incoming>
+      <outgoing>Flow_GW_ev_C_ok</outgoing>
+      <outgoing>Flow_GW_ev_C_err</outgoing>
+    </eventBasedGateway>
+    <intermediateCatchEvent id="C_ok" name="Skóre zhody doručené">
+      <incoming>Flow_GW_ev_C_ok</incoming>
+      <outgoing>Flow_C_ok_A12</outgoing>
+      <messageEventDefinition id="C_ok_ed" />
+    </intermediateCatchEvent>
     <userTask id="A12" name="Zobraziť skóre zhody a zručnosti">
-      <incoming>Flow_A11_A12</incoming>
+      <incoming>Flow_C_ok_A12</incoming>
       <outgoing>Flow_A12_A13</outgoing>
     </userTask>
     <userTask id="A13" name="Odhlásiť sa">
       <incoming>Flow_A12_A13</incoming>
-      <outgoing>Flow_A13_C_A</outgoing>
+      <outgoing>Flow_A13_C_N</outgoing>
     </userTask>
-    <intermediateCatchEvent id="C_A" name="Rozhodnutie o prihláške">
-      <incoming>Flow_A13_C_A</incoming>
-      <outgoing>Flow_C_A_E_A2</outgoing>
-      <messageEventDefinition id="C_A_ed" />
+    <intermediateCatchEvent id="C_err" name="Chybová hláška doručená">
+      <incoming>Flow_GW_ev_C_err</incoming>
+      <outgoing>Flow_C_err_A12e</outgoing>
+      <messageEventDefinition id="C_err_ed" />
     </intermediateCatchEvent>
-    <endEvent id="E_A2" name="Proces uchádzača ukončený">
-      <incoming>Flow_C_A_E_A2</incoming>
+    <userTask id="A12e" name="Prečítať chybu a prihlášku opraviť">
+      <incoming>Flow_C_err_A12e</incoming>
+      <outgoing>Flow_A12e_E_A2</outgoing>
+    </userTask>
+    <endEvent id="E_A2" name="Prihláška nedokončená">
+      <incoming>Flow_A12e_E_A2</incoming>
+    </endEvent>
+    <intermediateCatchEvent id="C_N" name="Notifikácia o rozhodnutí">
+      <incoming>Flow_A13_C_N</incoming>
+      <outgoing>Flow_C_N_A14</outgoing>
+      <messageEventDefinition id="C_N_ed" />
+    </intermediateCatchEvent>
+    <userTask id="A14" name="Zobraziť stav prihlášky">
+      <incoming>Flow_C_N_A14</incoming>
+      <outgoing>Flow_A14_E_A3</outgoing>
+    </userTask>
+    <endEvent id="E_A3" name="Proces uchádzača ukončený">
+      <incoming>Flow_A14_E_A3</incoming>
     </endEvent>
     <sequenceFlow id="Flow_S_A_A1" sourceRef="S_A" targetRef="A1" />
-    <sequenceFlow id="Flow_A1_GW_A1" sourceRef="A1" targetRef="GW_A1" />
-    <sequenceFlow id="Flow_GW_A1_A2" name="Nie" sourceRef="GW_A1" targetRef="A2" />
+    <sequenceFlow id="Flow_A1_A2" sourceRef="A1" targetRef="A2" />
     <sequenceFlow id="Flow_A2_A3" sourceRef="A2" targetRef="A3" />
-    <sequenceFlow id="Flow_A3_GW_A1m" sourceRef="A3" targetRef="GW_A1m" />
-    <sequenceFlow id="Flow_GW_A1_GW_A1m" name="Áno" sourceRef="GW_A1" targetRef="GW_A1m" />
-    <sequenceFlow id="Flow_GW_A1m_A4" sourceRef="GW_A1m" targetRef="A4" />
+    <sequenceFlow id="Flow_A3_A4" sourceRef="A3" targetRef="A4" />
     <sequenceFlow id="Flow_A4_A5" sourceRef="A4" targetRef="A5" />
-    <sequenceFlow id="Flow_A5_A6" sourceRef="A5" targetRef="A6" />
+    <sequenceFlow id="Flow_A5_GW_A5" sourceRef="A5" targetRef="GW_A5" />
+    <sequenceFlow id="Flow_GW_A5_E_A1" name="Nie" sourceRef="GW_A5" targetRef="E_A1" />
+    <sequenceFlow id="Flow_GW_A5_GW_A7" name="Áno" sourceRef="GW_A5" targetRef="GW_A7" />
+    <sequenceFlow id="Flow_GW_A7_GW_A8" name="Nie" sourceRef="GW_A7" targetRef="GW_A8" />
+    <sequenceFlow id="Flow_GW_A7_GW_Am2" name="Áno" sourceRef="GW_A7" targetRef="GW_Am2" />
+    <sequenceFlow id="Flow_GW_A8_A8" name="Nie" sourceRef="GW_A8" targetRef="A8" />
+    <sequenceFlow id="Flow_GW_A8_A10" name="Áno" sourceRef="GW_A8" targetRef="A10" />
+    <sequenceFlow id="Flow_A8_A9" sourceRef="A8" targetRef="A9" />
+    <sequenceFlow id="Flow_A9_GW_Am" sourceRef="A9" targetRef="GW_Am" />
+    <sequenceFlow id="Flow_A10_GW_Am" sourceRef="A10" targetRef="GW_Am" />
+    <sequenceFlow id="Flow_GW_Am_GW_Am2" sourceRef="GW_Am" targetRef="GW_Am2" />
+    <sequenceFlow id="Flow_GW_Am2_A6" sourceRef="GW_Am2" targetRef="A6" />
     <sequenceFlow id="Flow_A6_A7" sourceRef="A6" targetRef="A7" />
-    <sequenceFlow id="Flow_A7_A8" sourceRef="A7" targetRef="A8" />
-    <sequenceFlow id="Flow_A8_GW_A8" sourceRef="A8" targetRef="GW_A8" />
-    <sequenceFlow id="Flow_GW_A8_E_A1" name="Nie" sourceRef="GW_A8" targetRef="E_A1" />
-    <sequenceFlow id="Flow_GW_A8_A9" name="Áno" sourceRef="GW_A8" targetRef="A9" />
-    <sequenceFlow id="Flow_A9_A10" sourceRef="A9" targetRef="A10" />
-    <sequenceFlow id="Flow_A10_A11" sourceRef="A10" targetRef="A11" />
-    <sequenceFlow id="Flow_A11_A12" sourceRef="A11" targetRef="A12" />
+    <sequenceFlow id="Flow_A7_A11" sourceRef="A7" targetRef="A11" />
+    <sequenceFlow id="Flow_A11_GW_ev" sourceRef="A11" targetRef="GW_ev" />
+    <sequenceFlow id="Flow_GW_ev_C_ok" sourceRef="GW_ev" targetRef="C_ok" />
+    <sequenceFlow id="Flow_GW_ev_C_err" sourceRef="GW_ev" targetRef="C_err" />
+    <sequenceFlow id="Flow_C_ok_A12" sourceRef="C_ok" targetRef="A12" />
     <sequenceFlow id="Flow_A12_A13" sourceRef="A12" targetRef="A13" />
-    <sequenceFlow id="Flow_A13_C_A" sourceRef="A13" targetRef="C_A" />
-    <sequenceFlow id="Flow_C_A_E_A2" sourceRef="C_A" targetRef="E_A2" />
+    <sequenceFlow id="Flow_A13_C_N" sourceRef="A13" targetRef="C_N" />
+    <sequenceFlow id="Flow_C_N_A14" sourceRef="C_N" targetRef="A14" />
+    <sequenceFlow id="Flow_A14_E_A3" sourceRef="A14" targetRef="E_A3" />
+    <sequenceFlow id="Flow_C_err_A12e" sourceRef="C_err" targetRef="A12e" />
+    <sequenceFlow id="Flow_A12e_E_A2" sourceRef="A12e" targetRef="E_A2" />
   </process>
   <process id="Process_System" name="Proces HR systému" isExecutable="false">
     <laneSet id="LaneSet_System">
       <lane id="Lane_Web" name="Webová aplikácia (Frontend + Backend 1)">
         <flowNodeRef>S_W</flowNodeRef>
         <flowNodeRef>W1</flowNodeRef>
-        <flowNodeRef>GW_W1</flowNodeRef>
         <flowNodeRef>W2</flowNodeRef>
         <flowNodeRef>W3</flowNodeRef>
         <flowNodeRef>W4</flowNodeRef>
-        <flowNodeRef>GW_W1m</flowNodeRef>
+        <flowNodeRef>GW_W</flowNodeRef>
+        <flowNodeRef>GW_W2</flowNodeRef>
+        <flowNodeRef>W9</flowNodeRef>
+        <flowNodeRef>W10</flowNodeRef>
         <flowNodeRef>W5</flowNodeRef>
         <flowNodeRef>W6</flowNodeRef>
         <flowNodeRef>W7</flowNodeRef>
         <flowNodeRef>W8</flowNodeRef>
-        <flowNodeRef>W9</flowNodeRef>
-        <flowNodeRef>W10</flowNodeRef>
-        <flowNodeRef>GW_W10</flowNodeRef>
+        <flowNodeRef>GW_Wm</flowNodeRef>
+        <flowNodeRef>GW_Wm2</flowNodeRef>
         <flowNodeRef>W11</flowNodeRef>
         <flowNodeRef>W12</flowNodeRef>
+        <flowNodeRef>GW_W12</flowNodeRef>
         <flowNodeRef>W13</flowNodeRef>
-        <flowNodeRef>W14</flowNodeRef>
-        <flowNodeRef>W18</flowNodeRef>
-        <flowNodeRef>E_W</flowNodeRef>
+        <flowNodeRef>GW_W13</flowNodeRef>
+        <flowNodeRef>Wc</flowNodeRef>
         <flowNodeRef>W15</flowNodeRef>
         <flowNodeRef>W16</flowNodeRef>
+        <flowNodeRef>GW_W16</flowNodeRef>
         <flowNodeRef>W17</flowNodeRef>
+        <flowNodeRef>Werr</flowNodeRef>
+        <flowNodeRef>E_Werr</flowNodeRef>
+        <flowNodeRef>W18</flowNodeRef>
+        <flowNodeRef>E_W</flowNodeRef>
+        <flowNodeRef>W21</flowNodeRef>
+        <flowNodeRef>W22</flowNodeRef>
+        <flowNodeRef>W23</flowNodeRef>
+        <flowNodeRef>W24</flowNodeRef>
+        <flowNodeRef>W25</flowNodeRef>
+        <flowNodeRef>W26</flowNodeRef>
+        <flowNodeRef>W27</flowNodeRef>
       </lane>
       <lane id="Lane_Analyza" name="Analýza CV (Backend 2)">
         <flowNodeRef>N1</flowNodeRef>
@@ -183,111 +240,180 @@
       <outgoing>Flow_S_W_W1</outgoing>
       <messageEventDefinition id="S_W_ed" />
     </startEvent>
-    <serviceTask id="W1" name="Zobraziť prihlásenie a registráciu">
+    <serviceTask id="W1" name="Načítať pozície z SQL">
+      <documentation>GET /api/jobs – verejné, bez prihlásenia (tabuľka jobs, status open).</documentation>
       <incoming>Flow_S_W_W1</incoming>
-      <outgoing>Flow_W1_GW_W1</outgoing>
+      <outgoing>Flow_W1_W2</outgoing>
     </serviceTask>
-    <exclusiveGateway id="GW_W1" name="Nový uchádzač?">
-      <incoming>Flow_W1_GW_W1</incoming>
-      <outgoing>Flow_GW_W1_W2</outgoing>
-      <outgoing>Flow_GW_W1_GW_W1m</outgoing>
-    </exclusiveGateway>
-    <serviceTask id="W2" name="Validovať údaje registrácie">
-      <documentation>Backend 1: kontrola formátu e-mailu a sily hesla; registrácia vždy vytvorí rolu uchádzač.</documentation>
-      <incoming>Flow_GW_W1_W2</incoming>
+    <serviceTask id="W2" name="Zobraziť zoznam pozícií">
+      <incoming>Flow_W1_W2</incoming>
       <outgoing>Flow_W2_W3</outgoing>
     </serviceTask>
-    <serviceTask id="W3" name="Zahashovať heslo">
-      <documentation>bcrypt hash hesla.</documentation>
+    <serviceTask id="W3" name="Načítať detail pozície">
+      <documentation>GET /api/jobs/:id – verejné.</documentation>
       <incoming>Flow_W2_W3</incoming>
       <outgoing>Flow_W3_W4</outgoing>
     </serviceTask>
-    <serviceTask id="W4" name="Uložiť používateľa do SQL">
-      <documentation>SQL Server (hr_main), tabuľka users.</documentation>
+    <serviceTask id="W4" name="Zobraziť detail pozície">
       <incoming>Flow_W3_W4</incoming>
-      <outgoing>Flow_W4_GW_W1m</outgoing>
+      <outgoing>Flow_W4_GW_W</outgoing>
     </serviceTask>
-    <exclusiveGateway id="GW_W1m">
-      <incoming>Flow_W4_GW_W1m</incoming>
-      <incoming>Flow_GW_W1_GW_W1m</incoming>
-      <outgoing>Flow_GW_W1m_W5</outgoing>
+    <exclusiveGateway id="GW_W" name="Má uchádzač session?">
+      <incoming>Flow_W4_GW_W</incoming>
+      <outgoing>Flow_GW_W_GW_W2</outgoing>
+      <outgoing>Flow_GW_W_GW_Wm2</outgoing>
     </exclusiveGateway>
-    <serviceTask id="W5" name="Overiť prihlasovacie údaje">
-      <documentation>Rovnaký postup (W5–W7) platí aj pre prihlásenie HR manažéra.</documentation>
-      <incoming>Flow_GW_W1m_W5</incoming>
+    <exclusiveGateway id="GW_W2" name="Nový uchádzač?">
+      <incoming>Flow_GW_W_GW_W2</incoming>
+      <outgoing>Flow_GW_W2_W5</outgoing>
+      <outgoing>Flow_GW_W2_W9</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="W9" name="Overiť prihlasovacie údaje">
+      <documentation>POST /api/auth/login – bcrypt porovnanie hesla.</documentation>
+      <incoming>Flow_GW_W2_W9</incoming>
+      <outgoing>Flow_W9_W10</outgoing>
+    </serviceTask>
+    <serviceTask id="W10" name="Vytvoriť session cookie (hr.sid)">
+      <documentation>Nová session (regenerate) so zápisom userId a role.</documentation>
+      <incoming>Flow_W9_W10</incoming>
+      <outgoing>Flow_W10_GW_Wm</outgoing>
+    </serviceTask>
+    <serviceTask id="W5" name="Validovať údaje registrácie">
+      <documentation>POST /api/auth/register – kontrola e-mailu a hesla.</documentation>
+      <incoming>Flow_GW_W2_W5</incoming>
       <outgoing>Flow_W5_W6</outgoing>
     </serviceTask>
-    <serviceTask id="W6" name="Vytvoriť session cookie">
+    <serviceTask id="W6" name="Zahashovať heslo">
+      <documentation>bcrypt, 12 kôl.</documentation>
       <incoming>Flow_W5_W6</incoming>
       <outgoing>Flow_W6_W7</outgoing>
     </serviceTask>
-    <serviceTask id="W7" name="Skontrolovať rolu (user / admin)">
+    <serviceTask id="W7" name="Uložiť používateľa do SQL">
+      <documentation>Tabuľka users, rola vždy „user“.</documentation>
       <incoming>Flow_W6_W7</incoming>
       <outgoing>Flow_W7_W8</outgoing>
     </serviceTask>
-    <serviceTask id="W8" name="Načítať pozície z SQL">
-      <documentation>Tabuľka jobs v SQL Serveri.</documentation>
+    <serviceTask id="W8" name="Vytvoriť session (automatické prihlásenie)">
+      <documentation>Po registrácii je používateľ prihlásený hneď.</documentation>
       <incoming>Flow_W7_W8</incoming>
-      <outgoing>Flow_W8_W9</outgoing>
+      <outgoing>Flow_W8_GW_Wm</outgoing>
     </serviceTask>
-    <serviceTask id="W9" name="Zobraziť pozície a detail pozície">
-      <incoming>Flow_W8_W9</incoming>
-      <outgoing>Flow_W9_W10</outgoing>
-    </serviceTask>
-    <serviceTask id="W10" name="Skontrolovať duplicitnú prihlášku">
-      <documentation>Jeden účet sa môže na jednu pozíciu prihlásiť iba raz (UNIQUE user_id, job_id).</documentation>
-      <incoming>Flow_W9_W10</incoming>
-      <outgoing>Flow_W10_GW_W10</outgoing>
-    </serviceTask>
-    <exclusiveGateway id="GW_W10" name="Už prihlásený na pozíciu?">
-      <incoming>Flow_W10_GW_W10</incoming>
-      <outgoing>Flow_GW_W10_W11</outgoing>
-      <outgoing>Flow_GW_W10_W14</outgoing>
+    <exclusiveGateway id="GW_Wm">
+      <incoming>Flow_W8_GW_Wm</incoming>
+      <incoming>Flow_W10_GW_Wm</incoming>
+      <outgoing>Flow_GW_Wm_GW_Wm2</outgoing>
     </exclusiveGateway>
-    <serviceTask id="W11" name="Vytvoriť záznam prihlášky">
-      <documentation>Tabuľka applications, stav „submitted“.</documentation>
-      <incoming>Flow_GW_W10_W11</incoming>
+    <exclusiveGateway id="GW_Wm2">
+      <incoming>Flow_GW_W_GW_Wm2</incoming>
+      <incoming>Flow_GW_Wm_GW_Wm2</incoming>
+      <outgoing>Flow_GW_Wm2_W11</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="W11" name="Skontrolovať session (requireAuth)">
+      <documentation>POST /api/applications – bez session vráti 401.</documentation>
+      <incoming>Flow_GW_Wm2_W11</incoming>
       <outgoing>Flow_W11_W12</outgoing>
     </serviceTask>
-    <sendTask id="W12" name="Odoslať CV a požiadavky do Backend 2">
+    <serviceTask id="W12" name="Skontrolovať, či je pozícia otvorená">
+      <documentation>Pozícia musí mať status „open“, inak 404.</documentation>
       <incoming>Flow_W11_W12</incoming>
-      <outgoing>Flow_W12_N1</outgoing>
-    </sendTask>
-    <receiveTask id="W13" name="Prijať výsledok analýzy">
-      <incoming>Flow_N6_W13</incoming>
-      <incoming>Flow_N7_W13</incoming>
-      <outgoing>Flow_W13_W14</outgoing>
-    </receiveTask>
-    <serviceTask id="W14" name="Zobraziť výsledok uchádzačovi">
-      <incoming>Flow_GW_W10_W14</incoming>
-      <incoming>Flow_W13_W14</incoming>
-      <outgoing>Flow_W14_W18</outgoing>
+      <outgoing>Flow_W12_GW_W12</outgoing>
     </serviceTask>
+    <exclusiveGateway id="GW_W12" name="Pozícia otvorená?">
+      <incoming>Flow_W12_GW_W12</incoming>
+      <outgoing>Flow_GW_W12_W13</outgoing>
+      <outgoing>Flow_GW_W12_Werr</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="W13" name="Vytvoriť záznam prihlášky">
+      <documentation>INSERT do applications; UNIQUE (user_id, job_id).</documentation>
+      <incoming>Flow_GW_W12_W13</incoming>
+      <outgoing>Flow_W13_GW_W13</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="GW_W13" name="Už prihlásený (409)?">
+      <incoming>Flow_W13_GW_W13</incoming>
+      <outgoing>Flow_GW_W13_Wc</outgoing>
+      <outgoing>Flow_GW_W13_Werr</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="Wc" name="Uložiť GDPR súhlas k prihláške">
+      <documentation>Čas udelenia súhlasu sa ukladá k prihláške (applications.consent_at).</documentation>
+      <incoming>Flow_GW_W13_Wc</incoming>
+      <outgoing>Flow_Wc_W15</outgoing>
+    </serviceTask>
+    <sendTask id="W15" name="Odoslať CV a požiadavky do Backend 2">
+      <documentation>POST /api/ml/analyze (multipart: file, application_id, requirements).</documentation>
+      <incoming>Flow_Wc_W15</incoming>
+      <outgoing>Flow_W15_N1</outgoing>
+    </sendTask>
+    <receiveTask id="W16" name="Prijať odpoveď Backend 2">
+      <incoming>Flow_N6_W16</incoming>
+      <incoming>Flow_N7_W16</incoming>
+      <outgoing>Flow_W16_GW_W16</outgoing>
+    </receiveTask>
+    <exclusiveGateway id="GW_W16" name="Analýza úspešná?">
+      <incoming>Flow_W16_GW_W16</incoming>
+      <outgoing>Flow_GW_W16_W17</outgoing>
+      <outgoing>Flow_GW_W16_Werr</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="W17" name="Zobraziť skóre zhody uchádzačovi">
+      <incoming>Flow_GW_W16_W17</incoming>
+      <outgoing>Flow_W17_W18</outgoing>
+    </serviceTask>
+    <serviceTask id="Werr" name="Zobraziť chybovú hlášku uchádzačovi">
+      <documentation>Prihláška ostane uložená bez skóre (HR uvidí „CV ešte nebolo analyzované“).</documentation>
+      <incoming>Flow_GW_W12_Werr</incoming>
+      <incoming>Flow_GW_W13_Werr</incoming>
+      <incoming>Flow_GW_W16_Werr</incoming>
+      <outgoing>Flow_Werr_E_Werr</outgoing>
+    </serviceTask>
+    <endEvent id="E_Werr" name="Chyba oznámená">
+      <incoming>Flow_Werr_E_Werr</incoming>
+    </endEvent>
     <serviceTask id="W18" name="Zrušiť session pri odhlásení">
-      <incoming>Flow_W14_W18</incoming>
+      <documentation>POST /api/auth/logout – zruší session a vymaže cookie.</documentation>
+      <incoming>Flow_W17_W18</incoming>
       <outgoing>Flow_W18_E_W</outgoing>
     </serviceTask>
     <endEvent id="E_W" name="Session ukončená">
       <incoming>Flow_W18_E_W</incoming>
     </endEvent>
-    <serviceTask id="W15" name="Načítať prihlášky pre HR">
-      <incoming>Flow_H2_W15</incoming>
-      <outgoing>Flow_W15_W16</outgoing>
+    <serviceTask id="W21" name="Overiť prihlasovacie údaje HR">
+      <documentation>Účet admina vytvára skript scripts/create-admin.js.</documentation>
+      <incoming>Flow_H1_W21</incoming>
+      <outgoing>Flow_W21_W22</outgoing>
     </serviceTask>
-    <serviceTask id="W16" name="Pripojiť skóre z Backend 2">
-      <incoming>Flow_W15_W16</incoming>
-      <outgoing>Flow_W16_H3</outgoing>
+    <serviceTask id="W22" name="Vytvoriť session HR">
+      <incoming>Flow_W21_W22</incoming>
+      <outgoing>Flow_W22_W23</outgoing>
     </serviceTask>
-    <serviceTask id="W17" name="Aktualizovať stav prihlášky v SQL">
-      <documentation>Stavy: submitted, reviewing, interview, accepted, rejected.</documentation>
-      <incoming>Flow_GW_Hm_W17</incoming>
-      <outgoing>Flow_W17_H14</outgoing>
+    <serviceTask id="W23" name="Skontrolovať rolu admin (requireRole)">
+      <documentation>Rolu kontroluje middleware pri každej požiadavke na /api/admin; inak 403.</documentation>
+      <incoming>Flow_W22_W23</incoming>
+      <outgoing>Flow_W23_H2</outgoing>
     </serviceTask>
+    <serviceTask id="W24" name="Načítať prihlášky z SQL">
+      <documentation>GET /api/admin/applications?status=&amp;jobId= (filtrovanie na serveri).</documentation>
+      <incoming>Flow_H2_W24</incoming>
+      <outgoing>Flow_W24_W25</outgoing>
+    </serviceTask>
+    <serviceTask id="W25" name="Pripojiť skóre z Backend 2">
+      <documentation>GET /api/ml/results/:applicationId pre každú prihlášku.</documentation>
+      <incoming>Flow_W24_W25</incoming>
+      <outgoing>Flow_W25_H3</outgoing>
+    </serviceTask>
+    <serviceTask id="W26" name="Aktualizovať stav prihlášky v SQL">
+      <documentation>PATCH /api/admin/applications/:id/status – reviewing, interview, accepted, rejected.</documentation>
+      <incoming>Flow_GW_Hm_W26</incoming>
+      <outgoing>Flow_W26_W27</outgoing>
+    </serviceTask>
+    <sendTask id="W27" name="Odoslať notifikáciu uchádzačovi">
+      <incoming>Flow_W26_W27</incoming>
+      <outgoing>Flow_W27_H14</outgoing>
+    </sendTask>
     <serviceTask id="N1" name="Prijať požiadavku na analýzu">
-      <incoming>Flow_W12_N1</incoming>
+      <incoming>Flow_W15_N1</incoming>
       <outgoing>Flow_N1_N2</outgoing>
     </serviceTask>
     <serviceTask id="N2" name="Validovať súbor (typ, max. 5 MB)">
+      <documentation>413 – súbor &gt; 5 MB, 415 – nepodporovaný typ, 422 – prázdny alebo nečitateľný súbor.</documentation>
       <incoming>Flow_N1_N2</incoming>
       <outgoing>Flow_N2_GW_N2</outgoing>
     </serviceTask>
@@ -299,7 +425,7 @@
     <subProcess id="SUB" name="Analýza CV">
       <incoming>Flow_GW_N2_SUB</incoming>
       <outgoing>Flow_SUB_N4</outgoing>
-      <startEvent id="SS" name="CV pripravené&#10;na analýzu">
+      <startEvent id="SS" name="CV pripravené&#10; na analýzu">
         <outgoing>Flow_SS_I1</outgoing>
       </startEvent>
       <serviceTask id="I1" name="Extrahovať text z PDF / DOCX">
@@ -334,7 +460,7 @@
         <incoming>Flow_I7_I8</incoming>
         <outgoing>Flow_I8_SE</outgoing>
       </serviceTask>
-      <endEvent id="SE" name="Skóre&#10;vypočítané">
+      <endEvent id="SE" name="Skóre vypočítané">
         <incoming>Flow_I8_SE</incoming>
       </endEvent>
       <sequenceFlow id="Flow_SS_I1" sourceRef="SS" targetRef="I1" />
@@ -353,18 +479,18 @@
       <outgoing>Flow_N4_N5</outgoing>
     </serviceTask>
     <serviceTask id="N5" name="Uložiť skóre zhody do MySQL">
-      <documentation>MySQL (hr_analysis), tabuľka match_scores.</documentation>
+      <documentation>MySQL (hr_analysis), tabuľka match_scores (história analýz).</documentation>
       <incoming>Flow_N4_N5</incoming>
       <outgoing>Flow_N5_N6</outgoing>
     </serviceTask>
     <serviceTask id="N6" name="Vrátiť výsledok aplikácii">
       <incoming>Flow_N5_N6</incoming>
-      <outgoing>Flow_N6_W13</outgoing>
+      <outgoing>Flow_N6_W16</outgoing>
     </serviceTask>
     <serviceTask id="N7" name="Vrátiť chybu analýzy">
       <incoming>Flow_GW_N2_N7</incoming>
       <incoming>Flow_BE_N7</incoming>
-      <outgoing>Flow_N7_W13</outgoing>
+      <outgoing>Flow_N7_W16</outgoing>
     </serviceTask>
     <boundaryEvent id="BE" name="CV sa nedá prečítať" attachedToRef="SUB">
       <outgoing>Flow_BE_N7</outgoing>
@@ -375,17 +501,17 @@
     </startEvent>
     <userTask id="H1" name="Prihlásiť sa ako HR manažér">
       <incoming>Flow_S_H_H1</incoming>
-      <outgoing>Flow_H1_H2</outgoing>
+      <outgoing>Flow_H1_W21</outgoing>
     </userTask>
     <userTask id="H2" name="Otvoriť HR prehľad">
-      <incoming>Flow_H1_H2</incoming>
-      <outgoing>Flow_H2_W15</outgoing>
+      <incoming>Flow_W23_H2</incoming>
+      <outgoing>Flow_H2_W24</outgoing>
     </userTask>
     <userTask id="H3" name="Zobraziť zoznam prihlášok">
-      <incoming>Flow_W16_H3</incoming>
+      <incoming>Flow_W25_H3</incoming>
       <outgoing>Flow_H3_H4</outgoing>
     </userTask>
-    <userTask id="H4" name="Filtrovať podľa pozície">
+    <userTask id="H4" name="Filtrovať podľa stavu a pozície">
       <incoming>Flow_H3_H4</incoming>
       <outgoing>Flow_H4_H5</outgoing>
     </userTask>
@@ -401,7 +527,7 @@
       <incoming>Flow_H6_H7</incoming>
       <outgoing>Flow_H7_H8</outgoing>
     </userTask>
-    <userTask id="H8" name="Prezrieť CV uchádzača">
+    <userTask id="H8" name="Prezrieť vzdelanie a prax z analýzy">
       <incoming>Flow_H7_H8</incoming>
       <outgoing>Flow_H8_H9</outgoing>
     </userTask>
@@ -437,33 +563,49 @@
       <incoming>Flow_H11_GW_Hm</incoming>
       <incoming>Flow_H12_GW_Hm</incoming>
       <incoming>Flow_H13_GW_Hm</incoming>
-      <outgoing>Flow_GW_Hm_W17</outgoing>
+      <outgoing>Flow_GW_Hm_W26</outgoing>
     </exclusiveGateway>
-    <sendTask id="H14" name="Oznámiť rozhodnutie uchádzačovi">
-      <incoming>Flow_W17_H14</incoming>
+    <userTask id="H14" name="Potvrdiť zmenu stavu v prehľade">
+      <incoming>Flow_W27_H14</incoming>
       <outgoing>Flow_H14_E_H</outgoing>
-    </sendTask>
+    </userTask>
     <endEvent id="E_H" name="Prihláška vybavená">
       <incoming>Flow_H14_E_H</incoming>
     </endEvent>
     <sequenceFlow id="Flow_S_W_W1" sourceRef="S_W" targetRef="W1" />
-    <sequenceFlow id="Flow_W1_GW_W1" sourceRef="W1" targetRef="GW_W1" />
-    <sequenceFlow id="Flow_GW_W1_W2" name="Áno" sourceRef="GW_W1" targetRef="W2" />
+    <sequenceFlow id="Flow_W1_W2" sourceRef="W1" targetRef="W2" />
     <sequenceFlow id="Flow_W2_W3" sourceRef="W2" targetRef="W3" />
     <sequenceFlow id="Flow_W3_W4" sourceRef="W3" targetRef="W4" />
-    <sequenceFlow id="Flow_W4_GW_W1m" sourceRef="W4" targetRef="GW_W1m" />
-    <sequenceFlow id="Flow_GW_W1_GW_W1m" name="Nie" sourceRef="GW_W1" targetRef="GW_W1m" />
-    <sequenceFlow id="Flow_GW_W1m_W5" sourceRef="GW_W1m" targetRef="W5" />
+    <sequenceFlow id="Flow_W4_GW_W" sourceRef="W4" targetRef="GW_W" />
+    <sequenceFlow id="Flow_GW_W_GW_W2" name="Nie" sourceRef="GW_W" targetRef="GW_W2" />
+    <sequenceFlow id="Flow_GW_W_GW_Wm2" name="Áno" sourceRef="GW_W" targetRef="GW_Wm2" />
+    <sequenceFlow id="Flow_GW_W2_W5" name="Áno" sourceRef="GW_W2" targetRef="W5" />
+    <sequenceFlow id="Flow_GW_W2_W9" name="Nie" sourceRef="GW_W2" targetRef="W9" />
     <sequenceFlow id="Flow_W5_W6" sourceRef="W5" targetRef="W6" />
     <sequenceFlow id="Flow_W6_W7" sourceRef="W6" targetRef="W7" />
     <sequenceFlow id="Flow_W7_W8" sourceRef="W7" targetRef="W8" />
-    <sequenceFlow id="Flow_W8_W9" sourceRef="W8" targetRef="W9" />
+    <sequenceFlow id="Flow_W8_GW_Wm" sourceRef="W8" targetRef="GW_Wm" />
     <sequenceFlow id="Flow_W9_W10" sourceRef="W9" targetRef="W10" />
-    <sequenceFlow id="Flow_W10_GW_W10" sourceRef="W10" targetRef="GW_W10" />
-    <sequenceFlow id="Flow_GW_W10_W11" name="Nie" sourceRef="GW_W10" targetRef="W11" />
-    <sequenceFlow id="Flow_GW_W10_W14" name="Áno" sourceRef="GW_W10" targetRef="W14" />
+    <sequenceFlow id="Flow_W10_GW_Wm" sourceRef="W10" targetRef="GW_Wm" />
+    <sequenceFlow id="Flow_GW_Wm_GW_Wm2" sourceRef="GW_Wm" targetRef="GW_Wm2" />
+    <sequenceFlow id="Flow_GW_Wm2_W11" sourceRef="GW_Wm2" targetRef="W11" />
     <sequenceFlow id="Flow_W11_W12" sourceRef="W11" targetRef="W12" />
-    <sequenceFlow id="Flow_W12_N1" sourceRef="W12" targetRef="N1" />
+    <sequenceFlow id="Flow_W12_GW_W12" sourceRef="W12" targetRef="GW_W12" />
+    <sequenceFlow id="Flow_GW_W12_W13" name="Áno" sourceRef="GW_W12" targetRef="W13" />
+    <sequenceFlow id="Flow_GW_W12_Werr" name="Nie" sourceRef="GW_W12" targetRef="Werr" />
+    <sequenceFlow id="Flow_W13_GW_W13" sourceRef="W13" targetRef="GW_W13" />
+    <sequenceFlow id="Flow_GW_W13_Wc" name="Nie" sourceRef="GW_W13" targetRef="Wc" />
+    <sequenceFlow id="Flow_GW_W13_Werr" name="Áno" sourceRef="GW_W13" targetRef="Werr" />
+    <sequenceFlow id="Flow_Wc_W15" sourceRef="Wc" targetRef="W15" />
+    <sequenceFlow id="Flow_W15_N1" sourceRef="W15" targetRef="N1" />
+    <sequenceFlow id="Flow_N6_W16" sourceRef="N6" targetRef="W16" />
+    <sequenceFlow id="Flow_N7_W16" sourceRef="N7" targetRef="W16" />
+    <sequenceFlow id="Flow_W16_GW_W16" sourceRef="W16" targetRef="GW_W16" />
+    <sequenceFlow id="Flow_GW_W16_W17" name="Áno" sourceRef="GW_W16" targetRef="W17" />
+    <sequenceFlow id="Flow_GW_W16_Werr" name="Nie" sourceRef="GW_W16" targetRef="Werr" />
+    <sequenceFlow id="Flow_W17_W18" sourceRef="W17" targetRef="W18" />
+    <sequenceFlow id="Flow_W18_E_W" sourceRef="W18" targetRef="E_W" />
+    <sequenceFlow id="Flow_Werr_E_Werr" sourceRef="Werr" targetRef="E_Werr" />
     <sequenceFlow id="Flow_N1_N2" sourceRef="N1" targetRef="N2" />
     <sequenceFlow id="Flow_N2_GW_N2" sourceRef="N2" targetRef="GW_N2" />
     <sequenceFlow id="Flow_GW_N2_SUB" name="Áno" sourceRef="GW_N2" targetRef="SUB" />
@@ -472,16 +614,14 @@
     <sequenceFlow id="Flow_N5_N6" sourceRef="N5" targetRef="N6" />
     <sequenceFlow id="Flow_GW_N2_N7" name="Nie" sourceRef="GW_N2" targetRef="N7" />
     <sequenceFlow id="Flow_BE_N7" sourceRef="BE" targetRef="N7" />
-    <sequenceFlow id="Flow_N6_W13" sourceRef="N6" targetRef="W13" />
-    <sequenceFlow id="Flow_N7_W13" sourceRef="N7" targetRef="W13" />
-    <sequenceFlow id="Flow_W13_W14" sourceRef="W13" targetRef="W14" />
-    <sequenceFlow id="Flow_W14_W18" sourceRef="W14" targetRef="W18" />
-    <sequenceFlow id="Flow_W18_E_W" sourceRef="W18" targetRef="E_W" />
     <sequenceFlow id="Flow_S_H_H1" sourceRef="S_H" targetRef="H1" />
-    <sequenceFlow id="Flow_H1_H2" sourceRef="H1" targetRef="H2" />
-    <sequenceFlow id="Flow_H2_W15" sourceRef="H2" targetRef="W15" />
-    <sequenceFlow id="Flow_W15_W16" sourceRef="W15" targetRef="W16" />
-    <sequenceFlow id="Flow_W16_H3" sourceRef="W16" targetRef="H3" />
+    <sequenceFlow id="Flow_H1_W21" sourceRef="H1" targetRef="W21" />
+    <sequenceFlow id="Flow_W21_W22" sourceRef="W21" targetRef="W22" />
+    <sequenceFlow id="Flow_W22_W23" sourceRef="W22" targetRef="W23" />
+    <sequenceFlow id="Flow_W23_H2" sourceRef="W23" targetRef="H2" />
+    <sequenceFlow id="Flow_H2_W24" sourceRef="H2" targetRef="W24" />
+    <sequenceFlow id="Flow_W24_W25" sourceRef="W24" targetRef="W25" />
+    <sequenceFlow id="Flow_W25_H3" sourceRef="W25" targetRef="H3" />
     <sequenceFlow id="Flow_H3_H4" sourceRef="H3" targetRef="H4" />
     <sequenceFlow id="Flow_H4_H5" sourceRef="H4" targetRef="H5" />
     <sequenceFlow id="Flow_H5_H6" sourceRef="H5" targetRef="H6" />
@@ -497,14 +637,15 @@
     <sequenceFlow id="Flow_H11_GW_Hm" sourceRef="H11" targetRef="GW_Hm" />
     <sequenceFlow id="Flow_H12_GW_Hm" sourceRef="H12" targetRef="GW_Hm" />
     <sequenceFlow id="Flow_H13_GW_Hm" sourceRef="H13" targetRef="GW_Hm" />
-    <sequenceFlow id="Flow_GW_Hm_W17" sourceRef="GW_Hm" targetRef="W17" />
-    <sequenceFlow id="Flow_W17_H14" sourceRef="W17" targetRef="H14" />
+    <sequenceFlow id="Flow_GW_Hm_W26" sourceRef="GW_Hm" targetRef="W26" />
+    <sequenceFlow id="Flow_W26_W27" sourceRef="W26" targetRef="W27" />
+    <sequenceFlow id="Flow_W27_H14" sourceRef="W27" targetRef="H14" />
     <sequenceFlow id="Flow_H14_E_H" sourceRef="H14" targetRef="E_H" />
   </process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_SmartRecruit">
       <bpmndi:BPMNShape id="Participant_Uchadzac_di" bpmnElement="Participant_Uchadzac" isHorizontal="true">
-        <dc:Bounds x="160" y="40" width="8670" height="250" />
+        <dc:Bounds x="160" y="40" width="9570" height="360" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_A_di" bpmnElement="S_A">
         <dc:Bounds x="292" y="107" width="36" height="36" />
@@ -512,710 +653,930 @@
       <bpmndi:BPMNShape id="A1_di" bpmnElement="A1">
         <dc:Bounds x="405" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_A1_di" bpmnElement="GW_A1" isMarkerVisible="true">
-        <dc:Bounds x="585" y="100" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="580" y="83" width="60" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A2_di" bpmnElement="A2">
-        <dc:Bounds x="705" y="195" width="110" height="80" />
+        <dc:Bounds x="705" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A3_di" bpmnElement="A3">
-        <dc:Bounds x="855" y="195" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_A1m_di" bpmnElement="GW_A1m" isMarkerVisible="true">
-        <dc:Bounds x="1335" y="100" width="50" height="50" />
+        <dc:Bounds x="855" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A4_di" bpmnElement="A4">
-        <dc:Bounds x="1455" y="85" width="110" height="80" />
+        <dc:Bounds x="1005" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A5_di" bpmnElement="A5">
-        <dc:Bounds x="2055" y="85" width="110" height="80" />
+        <dc:Bounds x="1155" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="A6_di" bpmnElement="A6">
-        <dc:Bounds x="2205" y="85" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="A7_di" bpmnElement="A7">
-        <dc:Bounds x="2355" y="85" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="A8_di" bpmnElement="A8">
-        <dc:Bounds x="2505" y="85" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_A8_di" bpmnElement="GW_A8" isMarkerVisible="true">
-        <dc:Bounds x="2685" y="100" width="50" height="50" />
+      <bpmndi:BPMNShape id="GW_A5_di" bpmnElement="GW_A5" isMarkerVisible="true">
+        <dc:Bounds x="1335" y="100" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2674" y="66" width="71" height="27" />
+          <dc:Bounds x="1324" y="66" width="71" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="E_A1_di" bpmnElement="E_A1">
-        <dc:Bounds x="2842" y="217" width="36" height="36" />
+        <dc:Bounds x="1492" y="327" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1468" y="373" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_A7_di" bpmnElement="GW_A7" isMarkerVisible="true">
+        <dc:Bounds x="1485" y="100" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1474" y="73" width="71" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_A8_di" bpmnElement="GW_A8" isMarkerVisible="true">
+        <dc:Bounds x="1635" y="210" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1630" y="189" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A8_di" bpmnElement="A8">
+        <dc:Bounds x="1755" y="195" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A9_di" bpmnElement="A9">
-        <dc:Bounds x="2805" y="85" width="110" height="80" />
+        <dc:Bounds x="1905" y="195" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A10_di" bpmnElement="A10">
+        <dc:Bounds x="1755" y="305" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Am_di" bpmnElement="GW_Am" isMarkerVisible="true">
+        <dc:Bounds x="2535" y="210" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Am2_di" bpmnElement="GW_Am2" isMarkerVisible="true">
+        <dc:Bounds x="2685" y="100" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A6_di" bpmnElement="A6">
+        <dc:Bounds x="2805" y="85" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A7_di" bpmnElement="A7">
         <dc:Bounds x="2955" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="A11_di" bpmnElement="A11">
         <dc:Bounds x="3105" y="85" width="110" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="A12_di" bpmnElement="A12">
-        <dc:Bounds x="5955" y="85" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="A13_di" bpmnElement="A13">
-        <dc:Bounds x="6105" y="85" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="C_A_di" bpmnElement="C_A">
-        <dc:Bounds x="8542" y="107" width="36" height="36" />
+      <bpmndi:BPMNShape id="GW_ev_di" bpmnElement="GW_ev">
+        <dc:Bounds x="3285" y="100" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="8524" y="166" width="71" height="27" />
+          <dc:Bounds x="3265" y="73" width="90" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="E_A2_di" bpmnElement="E_A2">
-        <dc:Bounds x="8692" y="107" width="36" height="36" />
+      <bpmndi:BPMNShape id="C_ok_di" bpmnElement="C_ok">
+        <dc:Bounds x="6592" y="107" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="8683" y="150" width="54" height="40" />
+          <dc:Bounds x="6579" y="76" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A12_di" bpmnElement="A12">
+        <dc:Bounds x="6705" y="85" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A13_di" bpmnElement="A13">
+        <dc:Bounds x="6855" y="85" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_err_di" bpmnElement="C_err">
+        <dc:Bounds x="6742" y="217" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="6720" y="182" width="79" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A12e_di" bpmnElement="A12e">
+        <dc:Bounds x="6855" y="195" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_A2_di" bpmnElement="E_A2">
+        <dc:Bounds x="7042" y="217" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="7026" y="266" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_N_di" bpmnElement="C_N">
+        <dc:Bounds x="9292" y="107" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="9280" y="60" width="60" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A14_di" bpmnElement="A14">
+        <dc:Bounds x="9405" y="85" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_A3_di" bpmnElement="E_A3">
+        <dc:Bounds x="9592" y="107" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="9583" y="150" width="54" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_S_A_A1_di" bpmnElement="Flow_S_A_A1">
         <di:waypoint x="328" y="125" />
         <di:waypoint x="405" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A1_GW_A1_di" bpmnElement="Flow_A1_GW_A1">
+      <bpmndi:BPMNEdge id="Flow_A1_A2_di" bpmnElement="Flow_A1_A2">
         <di:waypoint x="515" y="125" />
-        <di:waypoint x="585" y="125" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_A1_A2_di" bpmnElement="Flow_GW_A1_A2">
-        <di:waypoint x="610" y="150" />
-        <di:waypoint x="610" y="235" />
-        <di:waypoint x="705" y="235" />
+        <di:waypoint x="705" y="125" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_A2_A3_di" bpmnElement="Flow_A2_A3">
-        <di:waypoint x="815" y="235" />
-        <di:waypoint x="855" y="235" />
+        <di:waypoint x="815" y="125" />
+        <di:waypoint x="855" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A3_GW_A1m_di" bpmnElement="Flow_A3_GW_A1m">
-        <di:waypoint x="965" y="235" />
-        <di:waypoint x="1360" y="235" />
-        <di:waypoint x="1360" y="150" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_A1_GW_A1m_di" bpmnElement="Flow_GW_A1_GW_A1m">
-        <di:waypoint x="635" y="125" />
-        <di:waypoint x="1335" y="125" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_A1m_A4_di" bpmnElement="Flow_GW_A1m_A4">
-        <di:waypoint x="1385" y="125" />
-        <di:waypoint x="1455" y="125" />
+      <bpmndi:BPMNEdge id="Flow_A3_A4_di" bpmnElement="Flow_A3_A4">
+        <di:waypoint x="965" y="125" />
+        <di:waypoint x="1005" y="125" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_A4_A5_di" bpmnElement="Flow_A4_A5">
-        <di:waypoint x="1565" y="125" />
-        <di:waypoint x="2055" y="125" />
+        <di:waypoint x="1115" y="125" />
+        <di:waypoint x="1155" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A5_A6_di" bpmnElement="Flow_A5_A6">
-        <di:waypoint x="2165" y="125" />
-        <di:waypoint x="2205" y="125" />
+      <bpmndi:BPMNEdge id="Flow_A5_GW_A5_di" bpmnElement="Flow_A5_GW_A5">
+        <di:waypoint x="1265" y="125" />
+        <di:waypoint x="1335" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A6_A7_di" bpmnElement="Flow_A6_A7">
-        <di:waypoint x="2315" y="125" />
-        <di:waypoint x="2355" y="125" />
+      <bpmndi:BPMNEdge id="Flow_GW_A5_E_A1_di" bpmnElement="Flow_GW_A5_E_A1">
+        <di:waypoint x="1360" y="150" />
+        <di:waypoint x="1360" y="345" />
+        <di:waypoint x="1492" y="345" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A7_A8_di" bpmnElement="Flow_A7_A8">
-        <di:waypoint x="2465" y="125" />
-        <di:waypoint x="2505" y="125" />
+      <bpmndi:BPMNEdge id="Flow_GW_A5_GW_A7_di" bpmnElement="Flow_GW_A5_GW_A7">
+        <di:waypoint x="1385" y="125" />
+        <di:waypoint x="1485" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A8_GW_A8_di" bpmnElement="Flow_A8_GW_A8">
-        <di:waypoint x="2615" y="125" />
+      <bpmndi:BPMNEdge id="Flow_GW_A7_GW_A8_di" bpmnElement="Flow_GW_A7_GW_A8">
+        <di:waypoint x="1510" y="150" />
+        <di:waypoint x="1510" y="235" />
+        <di:waypoint x="1635" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_A7_GW_Am2_di" bpmnElement="Flow_GW_A7_GW_Am2">
+        <di:waypoint x="1535" y="125" />
         <di:waypoint x="2685" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_A8_E_A1_di" bpmnElement="Flow_GW_A8_E_A1">
-        <di:waypoint x="2710" y="150" />
-        <di:waypoint x="2710" y="235" />
-        <di:waypoint x="2842" y="235" />
+      <bpmndi:BPMNEdge id="Flow_GW_A8_A8_di" bpmnElement="Flow_GW_A8_A8">
+        <di:waypoint x="1685" y="235" />
+        <di:waypoint x="1755" y="235" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_A8_A9_di" bpmnElement="Flow_GW_A8_A9">
+      <bpmndi:BPMNEdge id="Flow_GW_A8_A10_di" bpmnElement="Flow_GW_A8_A10">
+        <di:waypoint x="1660" y="260" />
+        <di:waypoint x="1660" y="345" />
+        <di:waypoint x="1755" y="345" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_A8_A9_di" bpmnElement="Flow_A8_A9">
+        <di:waypoint x="1865" y="235" />
+        <di:waypoint x="1905" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_A9_GW_Am_di" bpmnElement="Flow_A9_GW_Am">
+        <di:waypoint x="2015" y="235" />
+        <di:waypoint x="2535" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_A10_GW_Am_di" bpmnElement="Flow_A10_GW_Am">
+        <di:waypoint x="1865" y="345" />
+        <di:waypoint x="2560" y="345" />
+        <di:waypoint x="2560" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Am_GW_Am2_di" bpmnElement="Flow_GW_Am_GW_Am2">
+        <di:waypoint x="2585" y="235" />
+        <di:waypoint x="2710" y="235" />
+        <di:waypoint x="2710" y="150" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_Am2_A6_di" bpmnElement="Flow_GW_Am2_A6">
         <di:waypoint x="2735" y="125" />
         <di:waypoint x="2805" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A9_A10_di" bpmnElement="Flow_A9_A10">
+      <bpmndi:BPMNEdge id="Flow_A6_A7_di" bpmnElement="Flow_A6_A7">
         <di:waypoint x="2915" y="125" />
         <di:waypoint x="2955" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A10_A11_di" bpmnElement="Flow_A10_A11">
+      <bpmndi:BPMNEdge id="Flow_A7_A11_di" bpmnElement="Flow_A7_A11">
         <di:waypoint x="3065" y="125" />
         <di:waypoint x="3105" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A11_A12_di" bpmnElement="Flow_A11_A12">
+      <bpmndi:BPMNEdge id="Flow_A11_GW_ev_di" bpmnElement="Flow_A11_GW_ev">
         <di:waypoint x="3215" y="125" />
-        <di:waypoint x="5955" y="125" />
+        <di:waypoint x="3285" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_ev_C_ok_di" bpmnElement="Flow_GW_ev_C_ok">
+        <di:waypoint x="3335" y="125" />
+        <di:waypoint x="6592" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_ev_C_err_di" bpmnElement="Flow_GW_ev_C_err">
+        <di:waypoint x="3310" y="150" />
+        <di:waypoint x="3310" y="235" />
+        <di:waypoint x="6742" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_ok_A12_di" bpmnElement="Flow_C_ok_A12">
+        <di:waypoint x="6628" y="125" />
+        <di:waypoint x="6705" y="125" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_A12_A13_di" bpmnElement="Flow_A12_A13">
-        <di:waypoint x="6065" y="125" />
-        <di:waypoint x="6105" y="125" />
+        <di:waypoint x="6815" y="125" />
+        <di:waypoint x="6855" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_A13_C_A_di" bpmnElement="Flow_A13_C_A">
-        <di:waypoint x="6215" y="125" />
-        <di:waypoint x="8542" y="125" />
+      <bpmndi:BPMNEdge id="Flow_A13_C_N_di" bpmnElement="Flow_A13_C_N">
+        <di:waypoint x="6965" y="125" />
+        <di:waypoint x="9292" y="125" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_C_A_E_A2_di" bpmnElement="Flow_C_A_E_A2">
-        <di:waypoint x="8578" y="125" />
-        <di:waypoint x="8692" y="125" />
+      <bpmndi:BPMNEdge id="Flow_C_N_A14_di" bpmnElement="Flow_C_N_A14">
+        <di:waypoint x="9328" y="125" />
+        <di:waypoint x="9405" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_A14_E_A3_di" bpmnElement="Flow_A14_E_A3">
+        <di:waypoint x="9515" y="125" />
+        <di:waypoint x="9592" y="125" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C_err_A12e_di" bpmnElement="Flow_C_err_A12e">
+        <di:waypoint x="6778" y="235" />
+        <di:waypoint x="6855" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_A12e_E_A2_di" bpmnElement="Flow_A12e_E_A2">
+        <di:waypoint x="6965" y="235" />
+        <di:waypoint x="7042" y="235" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Participant_System_di" bpmnElement="Participant_System" isHorizontal="true">
-        <dc:Bounds x="160" y="360" width="8670" height="1060" />
+        <dc:Bounds x="160" y="470" width="9570" height="1190" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_HR_di" bpmnElement="Lane_HR" isHorizontal="true">
-        <dc:Bounds x="190" y="1000" width="8640" height="420" />
+        <dc:Bounds x="190" y="1240" width="9540" height="420" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Analyza_di" bpmnElement="Lane_Analyza" isHorizontal="true">
-        <dc:Bounds x="190" y="610" width="8640" height="390" />
+        <dc:Bounds x="190" y="850" width="9540" height="390" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_Web_di" bpmnElement="Lane_Web" isHorizontal="true">
-        <dc:Bounds x="190" y="360" width="8640" height="250" />
+        <dc:Bounds x="190" y="470" width="9540" height="380" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_W_di" bpmnElement="S_W">
-        <dc:Bounds x="442" y="427" width="36" height="36" />
+        <dc:Bounds x="442" y="537" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="419" y="580" width="82" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W1_di" bpmnElement="W1">
-        <dc:Bounds x="555" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_W1_di" bpmnElement="GW_W1" isMarkerVisible="true">
-        <dc:Bounds x="735" y="420" width="50" height="50" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="719" y="403" width="82" height="14" />
-        </bpmndi:BPMNLabel>
+        <dc:Bounds x="555" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W2_di" bpmnElement="W2">
-        <dc:Bounds x="855" y="515" width="110" height="80" />
+        <dc:Bounds x="705" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W3_di" bpmnElement="W3">
-        <dc:Bounds x="1005" y="515" width="110" height="80" />
+        <dc:Bounds x="855" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W4_di" bpmnElement="W4">
-        <dc:Bounds x="1155" y="515" width="110" height="80" />
+        <dc:Bounds x="1005" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_W1m_di" bpmnElement="GW_W1m" isMarkerVisible="true">
-        <dc:Bounds x="1335" y="420" width="50" height="50" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W5_di" bpmnElement="W5">
-        <dc:Bounds x="1455" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W6_di" bpmnElement="W6">
-        <dc:Bounds x="1605" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W7_di" bpmnElement="W7">
-        <dc:Bounds x="1755" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W8_di" bpmnElement="W8">
-        <dc:Bounds x="1905" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W9_di" bpmnElement="W9">
-        <dc:Bounds x="2055" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W10_di" bpmnElement="W10">
-        <dc:Bounds x="3105" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="GW_W10_di" bpmnElement="GW_W10" isMarkerVisible="true">
-        <dc:Bounds x="3285" y="420" width="50" height="50" />
+      <bpmndi:BPMNShape id="GW_W_di" bpmnElement="GW_W" isMarkerVisible="true">
+        <dc:Bounds x="1485" y="530" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="3269" y="386" width="82" height="27" />
+          <dc:Bounds x="1477" y="496" width="66" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_W2_di" bpmnElement="GW_W2" isMarkerVisible="true">
+        <dc:Bounds x="1635" y="640" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1619" y="623" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W9_di" bpmnElement="W9">
+        <dc:Bounds x="1755" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W10_di" bpmnElement="W10">
+        <dc:Bounds x="1905" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W5_di" bpmnElement="W5">
+        <dc:Bounds x="1905" y="625" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W6_di" bpmnElement="W6">
+        <dc:Bounds x="2055" y="625" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W7_di" bpmnElement="W7">
+        <dc:Bounds x="2205" y="625" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W8_di" bpmnElement="W8">
+        <dc:Bounds x="2355" y="625" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Wm_di" bpmnElement="GW_Wm" isMarkerVisible="true">
+        <dc:Bounds x="2535" y="640" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_Wm2_di" bpmnElement="GW_Wm2" isMarkerVisible="true">
+        <dc:Bounds x="2685" y="530" width="50" height="50" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W11_di" bpmnElement="W11">
-        <dc:Bounds x="3405" y="405" width="110" height="80" />
+        <dc:Bounds x="3105" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W12_di" bpmnElement="W12">
-        <dc:Bounds x="3555" y="405" width="110" height="80" />
+        <dc:Bounds x="3255" y="515" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_W12_di" bpmnElement="GW_W12" isMarkerVisible="true">
+        <dc:Bounds x="3435" y="530" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3415" y="503" width="89" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W13_di" bpmnElement="W13">
-        <dc:Bounds x="5805" y="405" width="110" height="80" />
+        <dc:Bounds x="3555" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W14_di" bpmnElement="W14">
-        <dc:Bounds x="5955" y="405" width="110" height="80" />
+      <bpmndi:BPMNShape id="GW_W13_di" bpmnElement="GW_W13" isMarkerVisible="true">
+        <dc:Bounds x="3735" y="530" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="3726" y="496" width="67" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="W18_di" bpmnElement="W18">
-        <dc:Bounds x="6105" y="405" width="110" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="E_W_di" bpmnElement="E_W">
-        <dc:Bounds x="6292" y="427" width="36" height="36" />
+      <bpmndi:BPMNShape id="Wc_di" bpmnElement="Wc">
+        <dc:Bounds x="3855" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W15_di" bpmnElement="W15">
-        <dc:Bounds x="6555" y="405" width="110" height="80" />
+        <dc:Bounds x="4005" y="515" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W16_di" bpmnElement="W16">
-        <dc:Bounds x="6705" y="405" width="110" height="80" />
+        <dc:Bounds x="6255" y="515" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GW_W16_di" bpmnElement="GW_W16" isMarkerVisible="true">
+        <dc:Bounds x="6435" y="530" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="6415" y="513" width="90" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="W17_di" bpmnElement="W17">
-        <dc:Bounds x="8355" y="405" width="110" height="80" />
+        <dc:Bounds x="6555" y="515" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Werr_di" bpmnElement="Werr">
+        <dc:Bounds x="6705" y="625" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_Werr_di" bpmnElement="E_Werr">
+        <dc:Bounds x="6892" y="647" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="6866" y="690" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W18_di" bpmnElement="W18">
+        <dc:Bounds x="6855" y="515" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="E_W_di" bpmnElement="E_W">
+        <dc:Bounds x="7042" y="537" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="7015" y="587" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W21_di" bpmnElement="W21">
+        <dc:Bounds x="6705" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W22_di" bpmnElement="W22">
+        <dc:Bounds x="6855" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W23_di" bpmnElement="W23">
+        <dc:Bounds x="7005" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W24_di" bpmnElement="W24">
+        <dc:Bounds x="7305" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W25_di" bpmnElement="W25">
+        <dc:Bounds x="7455" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W26_di" bpmnElement="W26">
+        <dc:Bounds x="9105" y="735" width="110" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="W27_di" bpmnElement="W27">
+        <dc:Bounds x="9255" y="735" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="N1_di" bpmnElement="N1">
-        <dc:Bounds x="3555" y="695" width="110" height="80" />
+        <dc:Bounds x="4005" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="N2_di" bpmnElement="N2">
-        <dc:Bounds x="3705" y="695" width="110" height="80" />
+        <dc:Bounds x="4155" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_N2_di" bpmnElement="GW_N2" isMarkerVisible="true">
-        <dc:Bounds x="3885" y="710" width="50" height="50" />
+        <dc:Bounds x="4335" y="950" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="3876" y="683" width="68" height="14" />
+          <dc:Bounds x="4326" y="923" width="68" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="SUB_di" bpmnElement="SUB" isExpanded="true">
-        <dc:Bounds x="4030" y="640" width="1260" height="190" />
+        <dc:Bounds x="4480" y="880" width="1260" height="190" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="SS_di" bpmnElement="SS">
-        <dc:Bounds x="4085" y="717" width="36" height="36" />
+        <dc:Bounds x="4535" y="957" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="4068" y="756" width="71" height="27" />
+          <dc:Bounds x="4518" y="993" width="71" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I1_di" bpmnElement="I1">
-        <dc:Bounds x="4143" y="695" width="110" height="80" />
+        <dc:Bounds x="4593" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I2_di" bpmnElement="I2">
-        <dc:Bounds x="4275" y="695" width="110" height="80" />
+        <dc:Bounds x="4725" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I3_di" bpmnElement="I3">
-        <dc:Bounds x="4407" y="695" width="110" height="80" />
+        <dc:Bounds x="4857" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I4_di" bpmnElement="I4">
-        <dc:Bounds x="4539" y="695" width="110" height="80" />
+        <dc:Bounds x="4989" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I5_di" bpmnElement="I5">
-        <dc:Bounds x="4671" y="695" width="110" height="80" />
+        <dc:Bounds x="5121" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I6_di" bpmnElement="I6">
-        <dc:Bounds x="4803" y="695" width="110" height="80" />
+        <dc:Bounds x="5253" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I7_di" bpmnElement="I7">
-        <dc:Bounds x="4935" y="695" width="110" height="80" />
+        <dc:Bounds x="5385" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="I8_di" bpmnElement="I8">
-        <dc:Bounds x="5067" y="695" width="110" height="80" />
+        <dc:Bounds x="5517" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="SE_di" bpmnElement="SE">
-        <dc:Bounds x="5199" y="717" width="36" height="36" />
+        <dc:Bounds x="5649" y="957" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="5190" y="756" width="54" height="27" />
+          <dc:Bounds x="5637" y="1000" width="85" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_SS_I1_di" bpmnElement="Flow_SS_I1">
-        <di:waypoint x="4121" y="735" />
-        <di:waypoint x="4143" y="735" />
+        <di:waypoint x="4571" y="975" />
+        <di:waypoint x="4593" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I1_I2_di" bpmnElement="Flow_I1_I2">
-        <di:waypoint x="4253" y="735" />
-        <di:waypoint x="4275" y="735" />
+        <di:waypoint x="4703" y="975" />
+        <di:waypoint x="4725" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I2_I3_di" bpmnElement="Flow_I2_I3">
-        <di:waypoint x="4385" y="735" />
-        <di:waypoint x="4407" y="735" />
+        <di:waypoint x="4835" y="975" />
+        <di:waypoint x="4857" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I3_I4_di" bpmnElement="Flow_I3_I4">
-        <di:waypoint x="4517" y="735" />
-        <di:waypoint x="4539" y="735" />
+        <di:waypoint x="4967" y="975" />
+        <di:waypoint x="4989" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I4_I5_di" bpmnElement="Flow_I4_I5">
-        <di:waypoint x="4649" y="735" />
-        <di:waypoint x="4671" y="735" />
+        <di:waypoint x="5099" y="975" />
+        <di:waypoint x="5121" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I5_I6_di" bpmnElement="Flow_I5_I6">
-        <di:waypoint x="4781" y="735" />
-        <di:waypoint x="4803" y="735" />
+        <di:waypoint x="5231" y="975" />
+        <di:waypoint x="5253" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I6_I7_di" bpmnElement="Flow_I6_I7">
-        <di:waypoint x="4913" y="735" />
-        <di:waypoint x="4935" y="735" />
+        <di:waypoint x="5363" y="975" />
+        <di:waypoint x="5385" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I7_I8_di" bpmnElement="Flow_I7_I8">
-        <di:waypoint x="5045" y="735" />
-        <di:waypoint x="5067" y="735" />
+        <di:waypoint x="5495" y="975" />
+        <di:waypoint x="5517" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_I8_SE_di" bpmnElement="Flow_I8_SE">
-        <di:waypoint x="5177" y="735" />
-        <di:waypoint x="5199" y="735" />
+        <di:waypoint x="5627" y="975" />
+        <di:waypoint x="5649" y="975" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="N4_di" bpmnElement="N4">
-        <dc:Bounds x="5355" y="695" width="110" height="80" />
+        <dc:Bounds x="5805" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="N5_di" bpmnElement="N5">
-        <dc:Bounds x="5505" y="695" width="110" height="80" />
+        <dc:Bounds x="5955" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="N6_di" bpmnElement="N6">
-        <dc:Bounds x="5655" y="695" width="110" height="80" />
+        <dc:Bounds x="6105" y="935" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="N7_di" bpmnElement="N7">
-        <dc:Bounds x="5355" y="890" width="110" height="80" />
+        <dc:Bounds x="5805" y="1130" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="S_H_di" bpmnElement="S_H">
-        <dc:Bounds x="6142" y="1192" width="36" height="36" />
+        <dc:Bounds x="6442" y="1432" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H1_di" bpmnElement="H1">
-        <dc:Bounds x="6255" y="1170" width="110" height="80" />
+        <dc:Bounds x="6555" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H2_di" bpmnElement="H2">
-        <dc:Bounds x="6405" y="1170" width="110" height="80" />
+        <dc:Bounds x="7155" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H3_di" bpmnElement="H3">
-        <dc:Bounds x="6855" y="1170" width="110" height="80" />
+        <dc:Bounds x="7605" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H4_di" bpmnElement="H4">
-        <dc:Bounds x="7005" y="1170" width="110" height="80" />
+        <dc:Bounds x="7755" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H5_di" bpmnElement="H5">
-        <dc:Bounds x="7155" y="1170" width="110" height="80" />
+        <dc:Bounds x="7905" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H6_di" bpmnElement="H6">
-        <dc:Bounds x="7305" y="1170" width="110" height="80" />
+        <dc:Bounds x="8055" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H7_di" bpmnElement="H7">
-        <dc:Bounds x="7455" y="1170" width="110" height="80" />
+        <dc:Bounds x="8205" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H8_di" bpmnElement="H8">
-        <dc:Bounds x="7605" y="1170" width="110" height="80" />
+        <dc:Bounds x="8355" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H9_di" bpmnElement="H9">
-        <dc:Bounds x="7755" y="1170" width="110" height="80" />
+        <dc:Bounds x="8505" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_H_di" bpmnElement="GW_H" isMarkerVisible="true">
-        <dc:Bounds x="7935" y="1185" width="50" height="50" />
+        <dc:Bounds x="8685" y="1425" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H10_di" bpmnElement="H10">
-        <dc:Bounds x="8055" y="1020" width="110" height="80" />
+        <dc:Bounds x="8805" y="1260" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H11_di" bpmnElement="H11">
-        <dc:Bounds x="8055" y="1120" width="110" height="80" />
+        <dc:Bounds x="8805" y="1360" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H12_di" bpmnElement="H12">
-        <dc:Bounds x="8055" y="1220" width="110" height="80" />
+        <dc:Bounds x="8805" y="1460" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H13_di" bpmnElement="H13">
-        <dc:Bounds x="8055" y="1320" width="110" height="80" />
+        <dc:Bounds x="8805" y="1560" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="GW_Hm_di" bpmnElement="GW_Hm" isMarkerVisible="true">
-        <dc:Bounds x="8235" y="1185" width="50" height="50" />
+        <dc:Bounds x="8985" y="1425" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="H14_di" bpmnElement="H14">
-        <dc:Bounds x="8505" y="1170" width="110" height="80" />
+        <dc:Bounds x="9405" y="1410" width="110" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="E_H_di" bpmnElement="E_H">
-        <dc:Bounds x="8692" y="1192" width="36" height="36" />
+        <dc:Bounds x="9592" y="1432" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="9586" y="1474" width="48" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BE_di" bpmnElement="BE">
-        <dc:Bounds x="5132" y="812" width="36" height="36" />
+        <dc:Bounds x="5582" y="1052" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="5121" y="876" width="58" height="27" />
+          <dc:Bounds x="5571" y="1026" width="58" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_S_W_W1_di" bpmnElement="Flow_S_W_W1">
-        <di:waypoint x="478" y="445" />
-        <di:waypoint x="555" y="445" />
+        <di:waypoint x="478" y="555" />
+        <di:waypoint x="555" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W1_GW_W1_di" bpmnElement="Flow_W1_GW_W1">
-        <di:waypoint x="665" y="445" />
-        <di:waypoint x="735" y="445" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_W1_W2_di" bpmnElement="Flow_GW_W1_W2">
-        <di:waypoint x="760" y="470" />
-        <di:waypoint x="760" y="555" />
-        <di:waypoint x="855" y="555" />
+      <bpmndi:BPMNEdge id="Flow_W1_W2_di" bpmnElement="Flow_W1_W2">
+        <di:waypoint x="665" y="555" />
+        <di:waypoint x="705" y="555" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W2_W3_di" bpmnElement="Flow_W2_W3">
+        <di:waypoint x="815" y="555" />
+        <di:waypoint x="855" y="555" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_W3_W4_di" bpmnElement="Flow_W3_W4">
         <di:waypoint x="965" y="555" />
         <di:waypoint x="1005" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W3_W4_di" bpmnElement="Flow_W3_W4">
+      <bpmndi:BPMNEdge id="Flow_W4_GW_W_di" bpmnElement="Flow_W4_GW_W">
         <di:waypoint x="1115" y="555" />
-        <di:waypoint x="1155" y="555" />
+        <di:waypoint x="1485" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W4_GW_W1m_di" bpmnElement="Flow_W4_GW_W1m">
-        <di:waypoint x="1265" y="555" />
-        <di:waypoint x="1360" y="555" />
-        <di:waypoint x="1360" y="470" />
+      <bpmndi:BPMNEdge id="Flow_GW_W_GW_W2_di" bpmnElement="Flow_GW_W_GW_W2">
+        <di:waypoint x="1510" y="580" />
+        <di:waypoint x="1510" y="665" />
+        <di:waypoint x="1635" y="665" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_W1_GW_W1m_di" bpmnElement="Flow_GW_W1_GW_W1m">
-        <di:waypoint x="785" y="445" />
-        <di:waypoint x="1335" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_W_GW_Wm2_di" bpmnElement="Flow_GW_W_GW_Wm2">
+        <di:waypoint x="1535" y="555" />
+        <di:waypoint x="2685" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_W1m_W5_di" bpmnElement="Flow_GW_W1m_W5">
-        <di:waypoint x="1385" y="445" />
-        <di:waypoint x="1455" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_W2_W5_di" bpmnElement="Flow_GW_W2_W5">
+        <di:waypoint x="1685" y="665" />
+        <di:waypoint x="1905" y="665" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_W2_W9_di" bpmnElement="Flow_GW_W2_W9">
+        <di:waypoint x="1660" y="690" />
+        <di:waypoint x="1660" y="775" />
+        <di:waypoint x="1755" y="775" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W5_W6_di" bpmnElement="Flow_W5_W6">
-        <di:waypoint x="1565" y="445" />
-        <di:waypoint x="1605" y="445" />
+        <di:waypoint x="2015" y="665" />
+        <di:waypoint x="2055" y="665" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W6_W7_di" bpmnElement="Flow_W6_W7">
-        <di:waypoint x="1715" y="445" />
-        <di:waypoint x="1755" y="445" />
+        <di:waypoint x="2165" y="665" />
+        <di:waypoint x="2205" y="665" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W7_W8_di" bpmnElement="Flow_W7_W8">
-        <di:waypoint x="1865" y="445" />
-        <di:waypoint x="1905" y="445" />
+        <di:waypoint x="2315" y="665" />
+        <di:waypoint x="2355" y="665" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W8_W9_di" bpmnElement="Flow_W8_W9">
-        <di:waypoint x="2015" y="445" />
-        <di:waypoint x="2055" y="445" />
+      <bpmndi:BPMNEdge id="Flow_W8_GW_Wm_di" bpmnElement="Flow_W8_GW_Wm">
+        <di:waypoint x="2465" y="665" />
+        <di:waypoint x="2535" y="665" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W9_W10_di" bpmnElement="Flow_W9_W10">
-        <di:waypoint x="2165" y="445" />
-        <di:waypoint x="3105" y="445" />
+        <di:waypoint x="1865" y="775" />
+        <di:waypoint x="1905" y="775" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W10_GW_W10_di" bpmnElement="Flow_W10_GW_W10">
-        <di:waypoint x="3215" y="445" />
-        <di:waypoint x="3285" y="445" />
+      <bpmndi:BPMNEdge id="Flow_W10_GW_Wm_di" bpmnElement="Flow_W10_GW_Wm">
+        <di:waypoint x="2015" y="775" />
+        <di:waypoint x="2560" y="775" />
+        <di:waypoint x="2560" y="690" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_W10_W11_di" bpmnElement="Flow_GW_W10_W11">
-        <di:waypoint x="3335" y="445" />
-        <di:waypoint x="3405" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_Wm_GW_Wm2_di" bpmnElement="Flow_GW_Wm_GW_Wm2">
+        <di:waypoint x="2585" y="665" />
+        <di:waypoint x="2710" y="665" />
+        <di:waypoint x="2710" y="580" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_W10_W14_di" bpmnElement="Flow_GW_W10_W14">
-        <di:waypoint x="3310" y="470" />
-        <di:waypoint x="3310" y="555" />
-        <di:waypoint x="6010" y="555" />
-        <di:waypoint x="6010" y="485" />
+      <bpmndi:BPMNEdge id="Flow_GW_Wm2_W11_di" bpmnElement="Flow_GW_Wm2_W11">
+        <di:waypoint x="2735" y="555" />
+        <di:waypoint x="3105" y="555" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W11_W12_di" bpmnElement="Flow_W11_W12">
-        <di:waypoint x="3515" y="445" />
-        <di:waypoint x="3555" y="445" />
+        <di:waypoint x="3215" y="555" />
+        <di:waypoint x="3255" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W12_N1_di" bpmnElement="Flow_W12_N1">
-        <di:waypoint x="3610" y="485" />
-        <di:waypoint x="3610" y="695" />
+      <bpmndi:BPMNEdge id="Flow_W12_GW_W12_di" bpmnElement="Flow_W12_GW_W12">
+        <di:waypoint x="3365" y="555" />
+        <di:waypoint x="3435" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N1_N2_di" bpmnElement="Flow_N1_N2">
-        <di:waypoint x="3665" y="735" />
-        <di:waypoint x="3705" y="735" />
+      <bpmndi:BPMNEdge id="Flow_GW_W12_W13_di" bpmnElement="Flow_GW_W12_W13">
+        <di:waypoint x="3485" y="555" />
+        <di:waypoint x="3555" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N2_GW_N2_di" bpmnElement="Flow_N2_GW_N2">
-        <di:waypoint x="3815" y="735" />
-        <di:waypoint x="3885" y="735" />
+      <bpmndi:BPMNEdge id="Flow_GW_W12_Werr_di" bpmnElement="Flow_GW_W12_Werr">
+        <di:waypoint x="3460" y="580" />
+        <di:waypoint x="3460" y="665" />
+        <di:waypoint x="6705" y="665" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_N2_SUB_di" bpmnElement="Flow_GW_N2_SUB">
-        <di:waypoint x="3935" y="735" />
-        <di:waypoint x="4030" y="735" />
+      <bpmndi:BPMNEdge id="Flow_W13_GW_W13_di" bpmnElement="Flow_W13_GW_W13">
+        <di:waypoint x="3665" y="555" />
+        <di:waypoint x="3735" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_SUB_N4_di" bpmnElement="Flow_SUB_N4">
-        <di:waypoint x="5290" y="735" />
-        <di:waypoint x="5355" y="735" />
+      <bpmndi:BPMNEdge id="Flow_GW_W13_Wc_di" bpmnElement="Flow_GW_W13_Wc">
+        <di:waypoint x="3785" y="555" />
+        <di:waypoint x="3855" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N4_N5_di" bpmnElement="Flow_N4_N5">
-        <di:waypoint x="5465" y="735" />
-        <di:waypoint x="5505" y="735" />
+      <bpmndi:BPMNEdge id="Flow_GW_W13_Werr_di" bpmnElement="Flow_GW_W13_Werr">
+        <di:waypoint x="3760" y="580" />
+        <di:waypoint x="3760" y="665" />
+        <di:waypoint x="6705" y="665" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N5_N6_di" bpmnElement="Flow_N5_N6">
-        <di:waypoint x="5615" y="735" />
-        <di:waypoint x="5655" y="735" />
+      <bpmndi:BPMNEdge id="Flow_Wc_W15_di" bpmnElement="Flow_Wc_W15">
+        <di:waypoint x="3965" y="555" />
+        <di:waypoint x="4005" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_N2_N7_di" bpmnElement="Flow_GW_N2_N7">
-        <di:waypoint x="3910" y="760" />
-        <di:waypoint x="3910" y="930" />
-        <di:waypoint x="5355" y="930" />
+      <bpmndi:BPMNEdge id="Flow_W15_N1_di" bpmnElement="Flow_W15_N1">
+        <di:waypoint x="4060" y="595" />
+        <di:waypoint x="4060" y="935" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_BE_N7_di" bpmnElement="Flow_BE_N7">
-        <di:waypoint x="5150" y="848" />
-        <di:waypoint x="5150" y="868" />
-        <di:waypoint x="5410" y="868" />
-        <di:waypoint x="5410" y="890" />
+      <bpmndi:BPMNEdge id="Flow_N6_W16_di" bpmnElement="Flow_N6_W16">
+        <di:waypoint x="6215" y="975" />
+        <di:waypoint x="6310" y="975" />
+        <di:waypoint x="6310" y="595" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N6_W13_di" bpmnElement="Flow_N6_W13">
-        <di:waypoint x="5765" y="735" />
-        <di:waypoint x="5860" y="735" />
-        <di:waypoint x="5860" y="485" />
+      <bpmndi:BPMNEdge id="Flow_N7_W16_di" bpmnElement="Flow_N7_W16">
+        <di:waypoint x="5915" y="1170" />
+        <di:waypoint x="6310" y="1170" />
+        <di:waypoint x="6310" y="595" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_N7_W13_di" bpmnElement="Flow_N7_W13">
-        <di:waypoint x="5465" y="930" />
-        <di:waypoint x="5860" y="930" />
-        <di:waypoint x="5860" y="485" />
+      <bpmndi:BPMNEdge id="Flow_W16_GW_W16_di" bpmnElement="Flow_W16_GW_W16">
+        <di:waypoint x="6365" y="555" />
+        <di:waypoint x="6435" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W13_W14_di" bpmnElement="Flow_W13_W14">
-        <di:waypoint x="5915" y="445" />
-        <di:waypoint x="5955" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_W16_W17_di" bpmnElement="Flow_GW_W16_W17">
+        <di:waypoint x="6485" y="555" />
+        <di:waypoint x="6555" y="555" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W14_W18_di" bpmnElement="Flow_W14_W18">
-        <di:waypoint x="6065" y="445" />
-        <di:waypoint x="6105" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_W16_Werr_di" bpmnElement="Flow_GW_W16_Werr">
+        <di:waypoint x="6460" y="580" />
+        <di:waypoint x="6460" y="665" />
+        <di:waypoint x="6705" y="665" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_W17_W18_di" bpmnElement="Flow_W17_W18">
+        <di:waypoint x="6665" y="555" />
+        <di:waypoint x="6855" y="555" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_W18_E_W_di" bpmnElement="Flow_W18_E_W">
-        <di:waypoint x="6215" y="445" />
-        <di:waypoint x="6292" y="445" />
+        <di:waypoint x="6965" y="555" />
+        <di:waypoint x="7042" y="555" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Werr_E_Werr_di" bpmnElement="Flow_Werr_E_Werr">
+        <di:waypoint x="6815" y="665" />
+        <di:waypoint x="6892" y="665" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_N1_N2_di" bpmnElement="Flow_N1_N2">
+        <di:waypoint x="4115" y="975" />
+        <di:waypoint x="4155" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_N2_GW_N2_di" bpmnElement="Flow_N2_GW_N2">
+        <di:waypoint x="4265" y="975" />
+        <di:waypoint x="4335" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_N2_SUB_di" bpmnElement="Flow_GW_N2_SUB">
+        <di:waypoint x="4385" y="975" />
+        <di:waypoint x="4480" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_SUB_N4_di" bpmnElement="Flow_SUB_N4">
+        <di:waypoint x="5740" y="975" />
+        <di:waypoint x="5805" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_N4_N5_di" bpmnElement="Flow_N4_N5">
+        <di:waypoint x="5915" y="975" />
+        <di:waypoint x="5955" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_N5_N6_di" bpmnElement="Flow_N5_N6">
+        <di:waypoint x="6065" y="975" />
+        <di:waypoint x="6105" y="975" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_GW_N2_N7_di" bpmnElement="Flow_GW_N2_N7">
+        <di:waypoint x="4360" y="1000" />
+        <di:waypoint x="4360" y="1170" />
+        <di:waypoint x="5805" y="1170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_BE_N7_di" bpmnElement="Flow_BE_N7">
+        <di:waypoint x="5600" y="1088" />
+        <di:waypoint x="5600" y="1108" />
+        <di:waypoint x="5860" y="1108" />
+        <di:waypoint x="5860" y="1130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_S_H_H1_di" bpmnElement="Flow_S_H_H1">
-        <di:waypoint x="6178" y="1210" />
-        <di:waypoint x="6255" y="1210" />
+        <di:waypoint x="6478" y="1450" />
+        <di:waypoint x="6555" y="1450" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_H1_H2_di" bpmnElement="Flow_H1_H2">
-        <di:waypoint x="6365" y="1210" />
-        <di:waypoint x="6405" y="1210" />
+      <bpmndi:BPMNEdge id="Flow_H1_W21_di" bpmnElement="Flow_H1_W21">
+        <di:waypoint x="6610" y="1410" />
+        <di:waypoint x="6610" y="775" />
+        <di:waypoint x="6705" y="775" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_H2_W15_di" bpmnElement="Flow_H2_W15">
-        <di:waypoint x="6460" y="1170" />
-        <di:waypoint x="6460" y="445" />
-        <di:waypoint x="6555" y="445" />
+      <bpmndi:BPMNEdge id="Flow_W21_W22_di" bpmnElement="Flow_W21_W22">
+        <di:waypoint x="6815" y="775" />
+        <di:waypoint x="6855" y="775" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W15_W16_di" bpmnElement="Flow_W15_W16">
-        <di:waypoint x="6665" y="445" />
-        <di:waypoint x="6705" y="445" />
+      <bpmndi:BPMNEdge id="Flow_W22_W23_di" bpmnElement="Flow_W22_W23">
+        <di:waypoint x="6965" y="775" />
+        <di:waypoint x="7005" y="775" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W16_H3_di" bpmnElement="Flow_W16_H3">
-        <di:waypoint x="6760" y="485" />
-        <di:waypoint x="6760" y="1210" />
-        <di:waypoint x="6855" y="1210" />
+      <bpmndi:BPMNEdge id="Flow_W23_H2_di" bpmnElement="Flow_W23_H2">
+        <di:waypoint x="7060" y="815" />
+        <di:waypoint x="7060" y="1450" />
+        <di:waypoint x="7155" y="1450" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_H2_W24_di" bpmnElement="Flow_H2_W24">
+        <di:waypoint x="7210" y="1410" />
+        <di:waypoint x="7210" y="775" />
+        <di:waypoint x="7305" y="775" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_W24_W25_di" bpmnElement="Flow_W24_W25">
+        <di:waypoint x="7415" y="775" />
+        <di:waypoint x="7455" y="775" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_W25_H3_di" bpmnElement="Flow_W25_H3">
+        <di:waypoint x="7510" y="815" />
+        <di:waypoint x="7510" y="1450" />
+        <di:waypoint x="7605" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H3_H4_di" bpmnElement="Flow_H3_H4">
-        <di:waypoint x="6965" y="1210" />
-        <di:waypoint x="7005" y="1210" />
+        <di:waypoint x="7715" y="1450" />
+        <di:waypoint x="7755" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H4_H5_di" bpmnElement="Flow_H4_H5">
-        <di:waypoint x="7115" y="1210" />
-        <di:waypoint x="7155" y="1210" />
+        <di:waypoint x="7865" y="1450" />
+        <di:waypoint x="7905" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H5_H6_di" bpmnElement="Flow_H5_H6">
-        <di:waypoint x="7265" y="1210" />
-        <di:waypoint x="7305" y="1210" />
+        <di:waypoint x="8015" y="1450" />
+        <di:waypoint x="8055" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H6_H7_di" bpmnElement="Flow_H6_H7">
-        <di:waypoint x="7415" y="1210" />
-        <di:waypoint x="7455" y="1210" />
+        <di:waypoint x="8165" y="1450" />
+        <di:waypoint x="8205" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H7_H8_di" bpmnElement="Flow_H7_H8">
-        <di:waypoint x="7565" y="1210" />
-        <di:waypoint x="7605" y="1210" />
+        <di:waypoint x="8315" y="1450" />
+        <di:waypoint x="8355" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H8_H9_di" bpmnElement="Flow_H8_H9">
-        <di:waypoint x="7715" y="1210" />
-        <di:waypoint x="7755" y="1210" />
+        <di:waypoint x="8465" y="1450" />
+        <di:waypoint x="8505" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H9_GW_H_di" bpmnElement="Flow_H9_GW_H">
-        <di:waypoint x="7865" y="1210" />
-        <di:waypoint x="7935" y="1210" />
+        <di:waypoint x="8615" y="1450" />
+        <di:waypoint x="8685" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_H_H10_di" bpmnElement="Flow_GW_H_H10">
-        <di:waypoint x="7960" y="1185" />
-        <di:waypoint x="7960" y="1060" />
-        <di:waypoint x="8055" y="1060" />
+        <di:waypoint x="8710" y="1425" />
+        <di:waypoint x="8710" y="1300" />
+        <di:waypoint x="8805" y="1300" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="7967" y="1043" width="65" height="14" />
+          <dc:Bounds x="8717" y="1283" width="65" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_H_H11_di" bpmnElement="Flow_GW_H_H11">
-        <di:waypoint x="7960" y="1185" />
-        <di:waypoint x="7960" y="1160" />
-        <di:waypoint x="8055" y="1160" />
+        <di:waypoint x="8710" y="1425" />
+        <di:waypoint x="8710" y="1400" />
+        <di:waypoint x="8805" y="1400" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="7972" y="1143" width="35" height="14" />
+          <dc:Bounds x="8722" y="1383" width="35" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_H_H12_di" bpmnElement="Flow_GW_H_H12">
-        <di:waypoint x="7960" y="1235" />
-        <di:waypoint x="7960" y="1260" />
-        <di:waypoint x="8055" y="1260" />
+        <di:waypoint x="8710" y="1475" />
+        <di:waypoint x="8710" y="1500" />
+        <di:waypoint x="8805" y="1500" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="8726" y="1481" width="27" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_GW_H_H13_di" bpmnElement="Flow_GW_H_H13">
-        <di:waypoint x="7960" y="1235" />
-        <di:waypoint x="7960" y="1360" />
-        <di:waypoint x="8055" y="1360" />
+        <di:waypoint x="8710" y="1475" />
+        <di:waypoint x="8710" y="1600" />
+        <di:waypoint x="8805" y="1600" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="7965" y="1343" width="50" height="14" />
+          <dc:Bounds x="8715" y="1583" width="50" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H10_GW_Hm_di" bpmnElement="Flow_H10_GW_Hm">
-        <di:waypoint x="8165" y="1060" />
-        <di:waypoint x="8260" y="1060" />
-        <di:waypoint x="8260" y="1185" />
+        <di:waypoint x="8915" y="1300" />
+        <di:waypoint x="9010" y="1300" />
+        <di:waypoint x="9010" y="1425" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H11_GW_Hm_di" bpmnElement="Flow_H11_GW_Hm">
-        <di:waypoint x="8165" y="1160" />
-        <di:waypoint x="8260" y="1160" />
-        <di:waypoint x="8260" y="1185" />
+        <di:waypoint x="8915" y="1400" />
+        <di:waypoint x="9010" y="1400" />
+        <di:waypoint x="9010" y="1425" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H12_GW_Hm_di" bpmnElement="Flow_H12_GW_Hm">
-        <di:waypoint x="8165" y="1260" />
-        <di:waypoint x="8260" y="1260" />
-        <di:waypoint x="8260" y="1235" />
+        <di:waypoint x="8915" y="1500" />
+        <di:waypoint x="9010" y="1500" />
+        <di:waypoint x="9010" y="1475" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H13_GW_Hm_di" bpmnElement="Flow_H13_GW_Hm">
-        <di:waypoint x="8165" y="1360" />
-        <di:waypoint x="8260" y="1360" />
-        <di:waypoint x="8260" y="1235" />
+        <di:waypoint x="8915" y="1600" />
+        <di:waypoint x="9010" y="1600" />
+        <di:waypoint x="9010" y="1475" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_GW_Hm_W17_di" bpmnElement="Flow_GW_Hm_W17">
-        <di:waypoint x="8260" y="1185" />
-        <di:waypoint x="8260" y="445" />
-        <di:waypoint x="8355" y="445" />
+      <bpmndi:BPMNEdge id="Flow_GW_Hm_W26_di" bpmnElement="Flow_GW_Hm_W26">
+        <di:waypoint x="9010" y="1425" />
+        <di:waypoint x="9010" y="775" />
+        <di:waypoint x="9105" y="775" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_W17_H14_di" bpmnElement="Flow_W17_H14">
-        <di:waypoint x="8410" y="485" />
-        <di:waypoint x="8410" y="1210" />
-        <di:waypoint x="8505" y="1210" />
+      <bpmndi:BPMNEdge id="Flow_W26_W27_di" bpmnElement="Flow_W26_W27">
+        <di:waypoint x="9215" y="775" />
+        <di:waypoint x="9255" y="775" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_W27_H14_di" bpmnElement="Flow_W27_H14">
+        <di:waypoint x="9310" y="815" />
+        <di:waypoint x="9310" y="1450" />
+        <di:waypoint x="9405" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_H14_E_H_di" bpmnElement="Flow_H14_E_H">
-        <di:waypoint x="8615" y="1210" />
-        <di:waypoint x="8692" y="1210" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Assoc_HRLogin_di" bpmnElement="Assoc_HRLogin">
-        <di:waypoint x="6310" y="1170" />
-        <di:waypoint x="6310" y="1130" />
+        <di:waypoint x="9515" y="1450" />
+        <di:waypoint x="9592" y="1450" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_1_di" bpmnElement="MsgFlow_1">
         <di:waypoint x="460" y="165" />
-        <di:waypoint x="460" y="427" />
+        <di:waypoint x="460" y="537" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="423" y="230" width="73" height="40" />
+          <dc:Bounds x="423" y="317" width="73" height="40" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_2_di" bpmnElement="MsgFlow_2">
-        <di:waypoint x="910" y="275" />
-        <di:waypoint x="910" y="515" />
+        <di:waypoint x="760" y="515" />
+        <di:waypoint x="760" y="165" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="865" y="393" width="89" height="14" />
+          <dc:Bounds x="722" y="330" width="75" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_3_di" bpmnElement="MsgFlow_3">
-        <di:waypoint x="1510" y="165" />
-        <di:waypoint x="1510" y="405" />
+        <di:waypoint x="910" y="165" />
+        <di:waypoint x="910" y="515" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1477" y="226" width="66" height="27" />
+          <dc:Bounds x="876" y="330" width="67" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_4_di" bpmnElement="MsgFlow_4">
-        <di:waypoint x="2110" y="405" />
-        <di:waypoint x="2110" y="165" />
+        <di:waypoint x="1060" y="515" />
+        <di:waypoint x="1060" y="165" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2072" y="233" width="75" height="14" />
+          <dc:Bounds x="1036" y="330" width="67" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_5_di" bpmnElement="MsgFlow_5">
-        <di:waypoint x="3160" y="165" />
-        <di:waypoint x="3160" y="405" />
+        <di:waypoint x="1810" y="385" />
+        <di:waypoint x="1810" y="735" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="3119" y="236" width="82" height="27" />
+          <dc:Bounds x="1777" y="566" width="66" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_6_di" bpmnElement="MsgFlow_6">
-        <di:waypoint x="6010" y="405" />
-        <di:waypoint x="6010" y="165" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="5968" y="226" width="84" height="27" />
-        </bpmndi:BPMNLabel>
+        <di:waypoint x="1960" y="275" />
+        <di:waypoint x="1960" y="625" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_7_di" bpmnElement="MsgFlow_7">
-        <di:waypoint x="6160" y="165" />
-        <di:waypoint x="6160" y="405" />
+        <di:waypoint x="3160" y="165" />
+        <di:waypoint x="3160" y="515" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="6123" y="226" width="73" height="27" />
+          <dc:Bounds x="3119" y="319" width="82" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="MsgFlow_8_di" bpmnElement="MsgFlow_8">
-        <di:waypoint x="8560" y="1170" />
-        <di:waypoint x="8560" y="143" />
+        <di:waypoint x="6610" y="515" />
+        <di:waypoint x="6610" y="143" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="8534" y="656" width="71" height="27" />
+          <dc:Bounds x="6574" y="319" width="71" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNShape id="Note_HRLogin_di" bpmnElement="Note_HRLogin">
-        <dc:Bounds x="6215" y="1070" width="190" height="60" />
-      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="MsgFlow_9_di" bpmnElement="MsgFlow_9">
+        <di:waypoint x="6760" y="625" />
+        <di:waypoint x="6760" y="253" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="6720" y="429" width="79" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_10_di" bpmnElement="MsgFlow_10">
+        <di:waypoint x="6910" y="165" />
+        <di:waypoint x="6910" y="515" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="6873" y="319" width="73" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="MsgFlow_11_di" bpmnElement="MsgFlow_11">
+        <di:waypoint x="9310" y="735" />
+        <di:waypoint x="9310" y="143" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="9280" y="422" width="60" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </definitions>
